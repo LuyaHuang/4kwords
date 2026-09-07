@@ -782,13 +782,13 @@
     import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
-        apiKey: "AIzaSyBdd8DazL2gqhsR9677CTh8tU0f2vB_oRI",
-        authDomain: "dailyquiz-e3173.firebaseapp.com",
-        projectId: "dailyquiz-e3173",
-        storageBucket: "dailyquiz-e3173.firebasestorage.app",
-        messagingSenderId: "726487717837",
-        appId: "1:726487717837:web:ba9e8db5da55001b3ad684",
-        measurementId: "G-WT79LBEY2T"
+        apiKey: "AIzaSyAumfeQtxKx6m-z853Hkb3Z4pU_vWpADG8",
+        authDomain: "kwords-a119a.firebaseapp.com",
+        projectId: "kwords-a119a",
+        storageBucket: "kwords-a119a.firebasestorage.app",
+        messagingSenderId: "428545535645",
+        appId: "1:428545535645:web:f0ed9eaa2ea3367cefee74",
+        measurementId: "G-YNR2X9GLDY"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -1079,7 +1079,9 @@
         });
 
         const firstDay = new Date(year, month, 1).getDay();
+
         const daysInMonth = new Date(year, month + 1, 0).getDate();
+
         const todayStr = getFormattedDate(new Date());
 
         let examDates = new Set();
