@@ -236,6 +236,8 @@
             #report-print-area tr { break-inside:avoid; }
             #report-print-area td, #report-print-area th { padding:6px !important; overflow-wrap:anywhere; }
             #report-print-area h3 { font-size:14pt !important; margin-bottom:12px !important; }
+            #report-print-area .student-record-item, #report-print-area .result-card { break-inside:avoid; }
+            #report-print-area .record-summary { gap:6px; }
         }
         @media(max-width:760px) { .container {padding:18px;} .book-row {grid-template-columns:90px minmax(0,1fr);gap:10px;padding:10px;} .unit-grid {grid-template-columns:repeat(3,minmax(0,1fr));} .header-container {flex-wrap:wrap;gap:12px;} .header-text h1 {font-size:1.6rem;} .admin-btn-grid {grid-template-columns:repeat(2,minmax(0,1fr));} }
         @media(max-width:440px) { .book-row {grid-template-columns:1fr;} .book-cover {display:flex;align-items:center;gap:14px;} .book-cover img {width:75px;} .unit-grid {grid-template-columns:repeat(2,minmax(0,1fr));} }
@@ -1210,7 +1212,7 @@
         }
         const targetUnit = unitKey(selectedBook,selectedUnit);
         const container = document.getElementById('records-list');
-        const heading = `<h3 style="color:var(--primary-color);margin:16px 0;">📚 ${unitLabel(selectedBook,selectedUnit)} · Unit Records</h3>`;
+        const heading = `<div class="report-heading"><h3 style="color:var(--primary-color);margin:16px 0;">📚 ${unitLabel(selectedBook,selectedUnit)} · Unit Records</h3>${reportPrintButton()}</div>`;
         container.innerHTML = heading + '<p style="color: var(--text-muted); font-size: 0.9rem;">⏳ Loading Cloud Records...</p>';
 
         let records;
@@ -1627,7 +1629,8 @@
             if (matchedRecords.length === 0) {
                 container.innerHTML = `
                     <div style="background:#fff; padding:20px; border-radius:10px; border:1px solid #e2e8f0; text-align:center;">
-                        <h3 style="color:var(--text-muted); font-size:1.1rem;">🔍 No exam records found</h3>
+                        <div class="report-heading"><h3 style="color:var(--text-muted); font-size:1.1rem;">👤 ${displayStudentName} - Score History</h3>${reportPrintButton()}</div>
+                        <p>No exam records found</p>
                         <p style="color:var(--text-muted); font-size:0.9rem; margin-top:6px;">
                             No matching records for "<strong>${searchName}</strong>" between <strong>${startStr}</strong> and <strong>${endStr}</strong>.
                         </p>
@@ -1648,8 +1651,8 @@
             let summaryHtml = `
                 <div style="background:#fff; padding:18px; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:16px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                        <div>
-                            <h3 style="color:var(--primary-color); font-size:1.25rem;">👤 ${displayStudentName} - Score History</h3>
+                        <div style="width:100%;">
+                            <div class="report-heading"><h3 style="color:var(--primary-color); font-size:1.25rem;">👤 ${displayStudentName} - Score History</h3>${reportPrintButton()}</div>
                             <p style="color:var(--text-muted); font-size:0.88rem; margin-top:2px;">Date Range: <strong>${startStr}</strong> ~ <strong>${endStr}</strong></p>
                         </div>
                         <div style="text-align:right;">
@@ -1860,7 +1863,7 @@
         
         let tableHtml = `
             <div style="background:#fff; padding:16px; border-radius:10px; border:1px solid #e2e8f0; text-align:center;">
-                <h3 style="color:var(--primary-color); margin-bottom:12px; font-size:1.15rem;">🏆 ${titleText}</h3>
+                <div class="report-heading"><h3 style="color:var(--primary-color); margin-bottom:12px; font-size:1.15rem;">🏆 ${titleText}</h3>${reportPrintButton()}</div>
                 <p style="color:var(--text-muted); font-size:0.85rem; margin-top:-8px; margin-bottom:12px;">(Based on 1st Attempt Scores only. Corrections are excluded.)</p>
                 <table style="width:100%; border-collapse:collapse; text-align:center; font-size:0.95rem;">
                     <thead>
@@ -2339,10 +2342,14 @@
         document.getElementById('result-list').innerHTML = resultListHtml;
     }
 
+    function reportPrintButton() {
+        return '<button class="print-report-button" aria-label="Print report as PDF" title="Print / Save as PDF" onclick="printTrackReport()">🖨️</button>';
+    }
     function printTrackReport(title) {
         if(!isAdmin || document.getElementById('report-print-area')) return;
         const source=document.getElementById('records-list');
-        if(!source.querySelector('table')) return;
+        if(!source.querySelector('h3')) return;
+        title=title || source.querySelector('h3').textContent.trim();
         const area=document.createElement('div');
         area.id='report-print-area';
         const copy=source.cloneNode(true);
