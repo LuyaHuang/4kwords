@@ -600,7 +600,7 @@
 
         <h3 style="margin-bottom: 14px;">Answer Breakdown</h3>
         <div id="result-list"></div>
-        <button class="btn" onclick="logoutUser()" style="margin-top: 18px;">Return to Menu / Switch User</button>
+        <button id="btn-return-menu" class="btn" onclick="returnToMenu()" style="margin-top: 18px;">Return to Menu</button>
     </div>
 </div>
 
@@ -851,7 +851,7 @@
         try {
             if(isExamActive) saveCurrentAnswer();
             const screen=savingResult || isExamActive ? 'screen-exam' :
-                ['screen-admin','screen-student-select','screen-result'].find(id=>!document.getElementById(id).classList.contains('hidden'));
+                ['screen-login','screen-admin','screen-student-select','screen-result'].find(id=>!document.getElementById(id).classList.contains('hidden'));
             sessionStorage.setItem(SESSION_KEY,JSON.stringify({currentUser,currentUserHR,isAdmin,
                 selectedBook,selectedUnit,screen,scrollY:window.scrollY,
                 questions,sectionDefs,currentIndex,userAnswers,isCorrectionMode,activeRecord,activeUnit,
@@ -861,6 +861,16 @@
     }
     window.addEventListener('beforeunload',savePageSession);
     window.addEventListener('pagehide',savePageSession);
+    function returnToMenu() {
+        if(isExamActive || savingResult) return;
+        for(const id of ['screen-login','screen-admin','screen-student-select','screen-exam','screen-result'])
+            document.getElementById(id).classList.toggle('hidden',id!=='screen-login');
+        document.getElementById('input-username').value='';
+        window.scrollTo(0,0);
+        savePageSession();
+        document.getElementById('input-username').focus();
+    }
+    window.returnToMenu=returnToMenu;
     async function logoutUser() {
         if(isExamActive && !confirm('Leave this exam and discard the saved answers?')) return;
         leavingSession=true;
@@ -889,12 +899,16 @@
             document.getElementById('user-role-label').textContent=isAdmin ? 'Administrator' : `Student (${currentUserHR})`;
             document.getElementById('current-user-name').textContent=isAdmin ? ADMIN_EMAIL : currentUser;
             document.querySelector('.user-badge').classList.toggle('admin-mode',isAdmin);
-            const screen=isAdmin ? 'screen-admin' : ['screen-exam','screen-result'].includes(saved.screen) ? saved.screen : 'screen-student-select';
+            const screen=saved.screen==='screen-login' ? 'screen-login' : isAdmin ? 'screen-admin' : ['screen-exam','screen-result'].includes(saved.screen) ? saved.screen : 'screen-student-select';
             for(const id of ['screen-login','screen-admin','screen-student-select','screen-exam','screen-result'])
                 document.getElementById(id).classList.toggle('hidden',id!==screen);
             const refresh=renderUnits();
             if(isAdmin) document.getElementById('records-list').innerHTML=saved.recordsHTML || '';
-            if(screen==='screen-result') document.getElementById('screen-result').innerHTML=saved.resultHTML || '';
+            if(screen==='screen-result') {
+                document.getElementById('screen-result').innerHTML=saved.resultHTML || '';
+                const returnButton=document.querySelector('#screen-result > button:last-child');
+                if(returnButton) {returnButton.textContent='Return to Menu';returnButton.setAttribute('onclick','returnToMenu()');}
+            }
             if(screen==='screen-exam') {
                 questions=saved.questions || [];sectionDefs=saved.sectionDefs || {};currentIndex=saved.currentIndex || 0;
                 userAnswers=saved.userAnswers || {};isCorrectionMode=saved.isCorrectionMode===true;
