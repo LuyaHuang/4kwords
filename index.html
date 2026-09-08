@@ -987,12 +987,23 @@
         if(!isAdmin || button.disabled) return;
         button.disabled=true;
         const key=unitKey(book,unit), opening=!unitStates[key]?.isOpen;
+        if(opening) {
+            try { await loadUnitExam(book,unit); }
+            catch(error) {
+                alert(`❌ 無法讀取或解析 index.html 同目錄的 ${key}.xlsx。\n${error.message}\n請確認檔名大小寫與檔案內容。單元未開啟。`);
+                button.disabled=false;
+                return;
+            }
+        }
         try {
-            if(opening) await loadUnitExam(book,unit);
             const state={book,unit,isOpen:opening,openedDate:opening ? getFormattedDate() : (unitStates[key]?.openedDate || ''),updatedAt:new Date().toISOString()};
             await setDoc(doc(db,'examUnits',key),state);
             unitStates[key]=state; drawUnits();
-        } catch(error) {alert(`❌ ${error.message} — Unit status was not changed.`);button.disabled=false;}
+        } catch(error) {
+            const fileStatus=opening ? `✅ 已成功讀取並驗證同目錄的 ${key}.xlsx。\n` : '';
+            alert(`${fileStatus}❌ 無法將單元開關狀態儲存至 Firestore：examUnits/${key}。\n${error.message}\n請檢查 Firebase 身分驗證與 Firestore Security Rules 是否允許管理員寫入此文件。狀態尚未變更，学生端無法取得本次設定。`);
+            button.disabled=false;
+        }
     }
     function checkStudentUnitExam() {
         const key=unitKey(selectedBook,selectedUnit), state=unitStates[key];
