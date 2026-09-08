@@ -204,7 +204,7 @@
         .book-cover img { width:100%; height:auto; border-radius:8px; }
         .book-cover h3 { margin-top:8px; text-align:center; }
         .unit-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; }
-        .unit-card { border:1px solid #e2e8f0; border-radius:9px; padding:8px 4px; text-align:center; background:#f8fafc; min-width:0; }
+        .unit-card { border:1px solid #e2e8f0; border-radius:9px; padding:8px 4px; text-align:center; background:#f8fafc; min-width:0; cursor:pointer; }
         .unit-card.selected { border:2px solid #4f46e5; background:#eef2ff; }
         .unit-name { border:0; background:none; color:#64748b; font-weight:800; font-size:1rem; cursor:pointer; }
         .unit-name.open { color:#2563eb; }
@@ -1100,8 +1100,12 @@
                 const card=document.createElement('div');card.className='unit-card'+(book===selectedBook && unit===selectedUnit ? ' selected':'');
                 card.innerHTML=`<div class="unit-heading"><button class="unit-name ${displayOpen ? 'open':''}">${icon}Unit${String(unit).padStart(2,'0')}</button>${isAdmin ? `<button class="unit-switch" role="switch" aria-label="${unitLabel(book,unit)}" aria-checked="${state.isOpen===true}">${state.isOpen ? 'On':'Off'}</button>` : ''}</div><div class="unit-date"></div>`;
                 card.querySelector('.unit-date').textContent=displayOpen && typeof state.openedDate === 'string' ? state.openedDate.replaceAll('-','.') : '';
-                card.querySelector('.unit-name').onclick=()=> {selectedBook=book;selectedUnit=unit;drawUnits();if(isAdmin){void loadAdminStudentRecords();}else checkStudentUnitExam();};
-                if (isAdmin) card.querySelector('.unit-switch').onclick=e=>toggleUnit(book,unit,e.currentTarget);
+                card.onclick=()=> {selectedBook=book;selectedUnit=unit;drawUnits();if(isAdmin){void loadAdminStudentRecords();}else checkStudentUnitExam();};
+                if (isAdmin) card.querySelector('.unit-switch').onclick=e=>{
+                    e.stopPropagation();
+                    card.onclick();
+                    void toggleUnit(book,unit,e.currentTarget);
+                };
                 grid.appendChild(card);
             }
             host.appendChild(row);
