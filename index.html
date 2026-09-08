@@ -527,6 +527,7 @@
     <div id="screen-admin" class="hidden">
         <h2 style="margin-bottom: 14px; color: var(--admin-color); font-size: 1.35rem;">⚙️ Administrator Exam Manager</h2>
         
+        <p id="admin-sync-status" class="status-msg" aria-live="polite"></p>
         <div id="admin-units"></div>
         <p id="admin-selected-unit" class="status-msg">Book1 / Unit01</p>
 
@@ -551,6 +552,7 @@
     <!-- Step 1-B: Student Portal -->
     <div id="screen-student-select" class="hidden">
         <h2 style="margin-bottom:14px;">📚 Book & Unit Selection</h2>
+        <p id="student-sync-status" class="status-msg" aria-live="polite"></p>
         <div id="student-units"></div>
         <div class="card-box">
             <h3 id="student-selected-unit">Book1 / Unit01</h3>
@@ -905,6 +907,7 @@
     let selectedBook = 1, selectedUnit = 1;
     let unitStates = {}, unitRecords = [], activeRecord = null, activeUnit = null;
     let loadingExam = false, savingResult = false;
+    let unitStatesLoaded = false, unitRecordsLoaded = false;
     const unitKey = (book, unit) => `B${book}U${String(unit).padStart(2,'0')}`;
     const unitLabel = (book, unit) => `Book${book} / Unit${String(unit).padStart(2,'0')}`;
     const recordLabel = r => r.book && r.unit ? unitLabel(r.book,r.unit) : 'Legacy exam';
@@ -925,15 +928,37 @@
         return parsed;
     }
     async function renderUnits() {
-        const host = document.getElementById(isAdmin ? 'admin-units' : 'student-units');
-        host.textContent = '⏳ Loading units...';
-        try {
-            const [states, records] = await Promise.all([getDocs(collection(db,'examUnits')),getDocs(collection(db,'records'))]);
-            unitStates = Object.fromEntries(states.docs.map(d => [d.id,d.data()]));
-            unitRecords = records.docs.map(d => ({...d.data(),recordId:d.id}));
+        // The catalogue is fixed local UI, never dependent on cloud availability.
+        drawUnits();
+        if (!isAdmin) checkStudentUnitExam();
+        const notice = document.getElementById(isAdmin ? 'admin-sync-status' : 'student-sync-status');
+        notice.textContent = '⏳ Syncing unit status...';
+        const errors = [];
+        const refresh = () => {
             drawUnits();
             if (!isAdmin) checkStudentUnitExam();
-        } catch(error) { host.textContent = '❌ Unable to load units. Please reload and check the connection / Firestore permissions.'; }
+        };
+        const stateTask = getDocs(collection(db,'examUnits')).then(states => {
+            unitStates = Object.fromEntries(states.docs.map(d => [d.id,d.data()]));
+            unitStatesLoaded = true;
+            refresh();
+        }).catch(error => {
+            console.error('Unit status sync:', error);
+            errors.push(`Unit status could not sync (${error.code || error.message}). The book catalogue remains available; displayed Off values are unconfirmed.`);
+            notice.textContent = errors.join(' ');
+        });
+        // Administrator only needs records when an analytics button is selected.
+        const recordTask = isAdmin ? Promise.resolve() : getDocs(collection(db,'records')).then(records => {
+            unitRecords = records.docs.map(d => ({...d.data(),recordId:d.id}));
+            unitRecordsLoaded = true;
+            refresh();
+        }).catch(error => {
+            console.error('Student record sync:', error);
+            errors.push(`Exam records could not sync (${error.code || error.message}). Please reload before starting an exam.`);
+            notice.textContent = errors.join(' ');
+        });
+        await Promise.allSettled([stateTask, recordTask]);
+        notice.textContent = errors.join(' ');
     }
     function drawUnits() {
         const host = document.getElementById(isAdmin ? 'admin-units' : 'student-units');
@@ -947,7 +972,7 @@
                 const key=unitKey(book,unit), state=unitStates[key] || {};
                 const records=unitRecords.filter(r => (r.unitId===key || (r.book===book && r.unit===unit)) && isMine());
                 const pending=records.some(r => (r.details || []).some(d => !d.isCorrect));
-                const icon=isAdmin ? '' : pending ? '❌' : records.length ? '👍' : isDue(state) ? '⛔' : '';
+                const icon=isAdmin || !unitRecordsLoaded ? '' : pending ? '❌' : records.length ? '👍' : isDue(state) ? '⛔' : '';
                 const card=document.createElement('div');card.className='unit-card'+(book===selectedBook && unit===selectedUnit ? ' selected':'');
                 card.innerHTML=`<button class="unit-name ${state.isOpen ? 'open':''}">${icon}Unit${String(unit).padStart(2,'0')}</button><div class="unit-date"></div><button class="unit-switch" role="switch" aria-label="${unitLabel(book,unit)}" aria-checked="${state.isOpen===true}" ${!isAdmin ? 'disabled':''}>${state.isOpen ? 'On':'Off'}</button>`;
                 card.querySelector('.unit-date').textContent=state.isOpen ? (state.openedDate || '').replaceAll('-','.') : '';
@@ -974,6 +999,7 @@
         const msg=document.getElementById('student-status-msg'), button=document.getElementById('btn-start-student-exam');
         document.getElementById('student-selected-unit').textContent=unitLabel(selectedBook,selectedUnit);
         button.classList.add('hidden');
+        if(!unitStatesLoaded || !unitRecordsLoaded) {msg.textContent='Book catalogue ready. Waiting for cloud status / exam records; reload if synchronization fails.';return;}
         if(!isDue(state)) {msg.textContent='This unit is not open for testing.';return;}
         const records=unitRecords.filter(r => (r.unitId===key || (r.book===selectedBook && r.unit===selectedUnit)) && isMine()).sort((a,b)=>(b.submittedAt || b.date).localeCompare(a.submittedAt || a.date));
         const pending=records.find(r=>(r.details || []).some(d=>!d.isCorrect));
