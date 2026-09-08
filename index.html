@@ -208,6 +208,10 @@
         .unit-card.selected { border:2px solid #4f46e5; background:#eef2ff; }
         .unit-name { border:0; background:none; color:#64748b; font-weight:800; font-size:1rem; cursor:pointer; }
         .unit-name.open { color:#2563eb; }
+        .unit-heading { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; min-height:24px; }
+        .unit-heading .unit-name { grid-column:2; white-space:nowrap; }
+        .unit-heading .unit-switch { grid-column:3; justify-self:end; width:28px; padding:2px 0; font-size:.65rem; line-height:16px; }
+        #admin-units .unit-name { font-size:.9rem; }
         .unit-date { color:#16a34a; min-height:23px; font-size:.8rem; padding-top:4px; }
         .unit-switch { border:1px solid #cbd5e1; border-radius:20px; padding:3px 10px; background:#e2e8f0; color:#475569; cursor:pointer; }
         .unit-switch[aria-checked="true"] { background:#dcfce7; color:#166534; border-color:#86efac; }
@@ -1005,7 +1009,7 @@
                 const pending=records.some(r => recordDetails(r).some(d => !d.isCorrect));
                 const icon=isAdmin || !unitRecordsLoaded ? '' : pending ? '❌' : records.length ? '👍' : isDue(state) ? '⛔' : '';
                 const card=document.createElement('div');card.className='unit-card'+(book===selectedBook && unit===selectedUnit ? ' selected':'');
-                card.innerHTML=`<button class="unit-name ${state.isOpen ? 'open':''}">${icon}Unit${String(unit).padStart(2,'0')}</button><div class="unit-date"></div>${isAdmin ? `<button class="unit-switch" role="switch" aria-label="${unitLabel(book,unit)}" aria-checked="${state.isOpen===true}">${state.isOpen ? 'On':'Off'}</button>` : ''}`;
+                card.innerHTML=`<div class="unit-heading"><button class="unit-name ${state.isOpen ? 'open':''}">${icon}Unit${String(unit).padStart(2,'0')}</button>${isAdmin ? `<button class="unit-switch" role="switch" aria-label="${unitLabel(book,unit)}" aria-checked="${state.isOpen===true}">${state.isOpen ? 'On':'Off'}</button>` : ''}</div><div class="unit-date"></div>`;
                 card.querySelector('.unit-date').textContent=state.isOpen && typeof state.openedDate === 'string' ? state.openedDate.replaceAll('-','.') : '';
                 card.querySelector('.unit-name').onclick=()=> {selectedBook=book;selectedUnit=unit;drawUnits();if(isAdmin){document.getElementById('admin-selected-unit').textContent=unitLabel(book,unit);void loadAdminStudentRecords();}else checkStudentUnitExam();};
                 if (isAdmin) card.querySelector('.unit-switch').onclick=e=>toggleUnit(book,unit,e.currentTarget);
@@ -2143,7 +2147,10 @@
             await saveResultToCloud(targetDate, currentUser, studentRecord);
             activeRecord=studentRecord;
         } catch(error) {
-            alert('❌ Result was not saved. Please press Submit again to retry.');
+            console.error('Result save failed:', error);
+            alert(error.code === 'permission-denied'
+                ? '❌ Firebase denied permission to save this result. Please ask Administrator to update the Firestore rules. Your answers remain on this page; retry after permissions are fixed.'
+                : '❌ Result was not saved. Please check your connection and press Submit again to retry.');
             document.getElementById('screen-result').classList.add('hidden');
             document.getElementById('screen-exam').classList.remove('hidden');
             isExamActive=true;
