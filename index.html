@@ -208,7 +208,6 @@
         .unit-card.selected { border:2px solid #4f46e5; background:#eef2ff; }
         .unit-name { border:0; background:none; color:#64748b; font-weight:800; font-size:1rem; cursor:pointer; }
         .unit-name.open { color:#2563eb; }
-        #student-units .unit-name.open { color:#16a34a; }
         .unit-date { color:#16a34a; min-height:23px; font-size:.8rem; padding-top:4px; }
         .unit-switch { border:1px solid #cbd5e1; border-radius:20px; padding:3px 10px; background:#e2e8f0; color:#475569; cursor:pointer; }
         .unit-switch[aria-checked="true"] { background:#dcfce7; color:#166534; border-color:#86efac; }
@@ -1037,7 +1036,7 @@
         document.getElementById('student-selected-unit').textContent=unitLabel(selectedBook,selectedUnit);
         button.classList.add('hidden');
         if(!unitStatesLoaded || !unitRecordsLoaded) {msg.textContent='Book catalogue ready. Waiting for cloud status / exam records; reload if synchronization fails.';return;}
-        if(!isDue(state)) {msg.textContent='This unit is not open for testing.';return;}
+        if(!isDue(state)) {msg.textContent='Please select a unit to take the test.';return;}
         const records=unitRecords.filter(r => (r.unitId===key || (r.book===selectedBook && r.unit===selectedUnit)) && isMine()).sort((a,b)=>(b.submittedAt || b.date).localeCompare(a.submittedAt || a.date));
         const pending=records.find(r=>(r.details || []).some(d=>!d.isCorrect));
         const record=pending || records[0];
