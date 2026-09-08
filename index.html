@@ -199,106 +199,24 @@
         .status-msg.success { color: var(--success-color); }
         .status-msg.warning { color: var(--warning-color); }
 
-        /* Calendar Component */
-        .calendar-card {
-            background: #ffffff;
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 18px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
-        }
+        .container { max-width: 1120px; }
+        .book-row { display:grid; grid-template-columns:140px minmax(0,1fr); gap:20px; margin-bottom:28px; padding:18px; border:1px solid var(--border-color); border-radius:12px; }
+        .book-cover img { width:100%; height:auto; border-radius:8px; }
+        .book-cover h3 { margin-top:8px; text-align:center; }
+        .unit-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; }
+        .unit-card { border:1px solid #e2e8f0; border-radius:9px; padding:8px 4px; text-align:center; background:#f8fafc; min-width:0; }
+        .unit-card.selected { border:2px solid #4f46e5; background:#eef2ff; }
+        .unit-name { border:0; background:none; color:#64748b; font-weight:800; font-size:1rem; cursor:pointer; }
+        .unit-name.open { color:#2563eb; }
+        .unit-date { color:#16a34a; min-height:23px; font-size:.8rem; padding-top:4px; }
+        .unit-switch { border:1px solid #cbd5e1; border-radius:20px; padding:3px 10px; background:#e2e8f0; color:#475569; cursor:pointer; }
+        .unit-switch[aria-checked="true"] { background:#dcfce7; color:#166534; border-color:#86efac; }
+        .unit-switch:disabled { opacity:1; cursor:default; }
+        .record-summary { flex-wrap:wrap; gap:10px; }
+        #records-list { overflow-x:auto; }
+        @media(max-width:760px) { .container {padding:18px;} .book-row {grid-template-columns:90px minmax(0,1fr);gap:10px;padding:10px;} .unit-grid {grid-template-columns:repeat(3,minmax(0,1fr));} .header-container {flex-wrap:wrap;gap:12px;} .header-text h1 {font-size:1.6rem;} .admin-btn-grid {grid-template-columns:repeat(2,minmax(0,1fr));} }
+        @media(max-width:440px) { .book-row {grid-template-columns:1fr;} .book-cover {display:flex;align-items:center;gap:14px;} .book-cover img {width:75px;} .unit-grid {grid-template-columns:repeat(2,minmax(0,1fr));} }
 
-        .calendar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 14px;
-        }
-
-        .calendar-header h3 { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
-
-        .calendar-nav-btn {
-            background: #f1f5f9;
-            border: 1px solid var(--border-color);
-            padding: 6px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.88rem;
-            color: var(--text-main);
-            transition: all 0.2s ease;
-        }
-
-        .calendar-nav-btn:hover {
-            background: #e2e8f0;
-        }
-
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 6px;
-            text-align: center;
-        }
-
-        .cal-day-header {
-            font-weight: 700;
-            font-size: 0.82rem;
-            color: var(--text-muted);
-            padding-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .cal-day {
-            height: 40px;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            cursor: pointer;
-            position: relative;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: all 0.2s ease;
-            background: #ffffff;
-        }
-
-        .cal-day:hover {
-            border-color: var(--primary-color);
-            background: #f8fafc;
-            transform: translateY(-1px);
-        }
-
-        .cal-day.empty { border: none; cursor: default; background: transparent; }
-
-        .cal-day.today {
-            border: 2px solid var(--primary-color);
-            color: var(--primary-color);
-            font-weight: 800;
-        }
-
-        .cal-day.selected {
-            background-color: var(--primary-color) !important;
-            color: #ffffff !important;
-            border-color: var(--primary-color) !important;
-            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
-        }
-
-        .cal-day .has-exam-dot {
-            width: 6px;
-            height: 6px;
-            background-color: var(--success-color);
-            border-radius: 50%;
-            position: absolute;
-            bottom: 3px;
-        }
-
-        .cal-day.selected .has-exam-dot {
-            background-color: #ffffff;
-        }
 
         /* Modal Layout */
         .modal-overlay {
@@ -609,34 +527,15 @@
     <div id="screen-admin" class="hidden">
         <h2 style="margin-bottom: 14px; color: var(--admin-color); font-size: 1.35rem;">⚙️ Administrator Exam Manager</h2>
         
-        <div class="calendar-card">
-            <div class="calendar-header">
-                <button class="calendar-nav-btn" onclick="changeMonth(-1)">❮ Prev</button>
-                <h3 id="calendar-month-year">Month Year</h3>
-                <button class="calendar-nav-btn" onclick="changeMonth(1)">Next ❯</button>
-            </div>
-            <div class="calendar-grid" id="calendar-grid"></div>
-        </div>
-
-        <div class="card-box">
-            <h3>Target Date: <span id="admin-target-date" style="color: var(--primary-color);">YYYY-MM-DD</span></h3>
-            <p style="color: var(--text-muted); font-size: 0.88rem; margin-top: 4px;">Upload Excel file. It will automatically upload to Firebase cloud for the selected date.</p>
-            
-            <div id="admin-status-info" class="status-msg" style="margin: 10px 0;"></div>
-
-            <div>
-                <label for="excel-file-admin" class="file-label">📂 Select Exam Excel File (.xlsx)</label>
-                <input type="file" id="excel-file-admin" accept=".xlsx, .xls" style="display:none;" onchange="handleAdminUpload(event)">
-            </div>
-            <button id="btn-delete-exam" class="btn btn-inline btn-danger hidden" onclick="deleteExamForSelectedDate()" style="margin-top: 10px;">Delete Exam For This Date</button>
-        </div>
+        <div id="admin-units"></div>
+        <p id="admin-selected-unit" class="status-msg">Book1 / Unit01</p>
 
         <!-- Admin View Records -->
         <div class="records-section">
             <h3 style="color: var(--text-main); font-size: 1.15rem; margin-top: 4px;">📊 Student Exam & Score Analytics</h3>
 
             <div class="admin-btn-grid">
-                <button class="btn btn-blue-grad admin-action-btn" onclick="loadAdminStudentRecords()">📅 Daily Records (<span id="records-date-label"></span>)</button>
+                <button class="btn btn-blue-grad admin-action-btn" onclick="loadAdminStudentRecords()">📚 Unit Records</button>
                 <button class="btn btn-blue-grad admin-action-btn" onclick="calculateWeeklyLeaderboard()">🏆 Weekly Ranking</button>
                 <button class="btn btn-blue-grad admin-action-btn" onclick="openCustomRangeModal()">🗓️ Custom Ranking</button>
                 
@@ -651,23 +550,16 @@
 
     <!-- Step 1-B: Student Portal -->
     <div id="screen-student-select" class="hidden">
-        <h2 style="margin-bottom: 14px; font-size: 1.35rem;">📅 Daily Test Selection</h2>
-        
-        <div class="calendar-card">
-            <div class="calendar-header">
-                <button class="calendar-nav-btn" onclick="changeMonth(-1)">❮ Prev</button>
-                <h3 id="student-calendar-month-year">Month Year</h3>
-                <button class="calendar-nav-btn" onclick="changeMonth(1)">Next ❯</button>
-            </div>
-            <div class="calendar-grid" id="student-calendar-grid"></div>
-        </div>
-
+        <h2 style="margin-bottom:14px;">📚 Book & Unit Selection</h2>
+        <div id="student-units"></div>
         <div class="card-box">
-            <h3>Selected Date: <span id="student-target-date" style="color: var(--primary-color);">YYYY-MM-DD</span></h3>
-            <div id="student-status-msg" class="status-msg" style="margin: 10px 0;"></div>
-            <button id="btn-start-student-exam" class="btn hidden" style="margin-top: 10px;">Start Test</button>
+            <h3 id="student-selected-unit">Book1 / Unit01</h3>
+            <div id="student-status-msg" class="status-msg" style="margin:10px 0;"></div>
+            <button id="btn-start-student-exam" class="btn hidden">Start Test</button>
         </div>
     </div>
+
+
 
     <!-- Step 2: Testing View -->
     <div id="screen-exam" class="hidden">
@@ -779,7 +671,7 @@
 <!-- Firebase & Application Script -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAumfeQtxKx6m-z853Hkb3Z4pU_vWpADG8",
@@ -796,59 +688,16 @@
 
     const DEFAULT_PLACEHOLDER = "e.g., Peter Pan (Full English Name)";
 
-    async function saveExamToCloud(dateStr, examData) {
-        try {
-            await setDoc(doc(db, "exams", dateStr), examData);
-            alert(`✅ Exam successfully published to Firebase cloud database (${dateStr})!`);
-        } catch (error) {
-            console.error("Cloud Save Exam Error:", error);
-            alert("❌ Save failed! Please verify Firebase rules configuration.");
-        }
-    }
-
-    async function getExamFromCloud(dateStr) {
-        try {
-            const docRef = doc(db, "exams", dateStr);
-            const docSnap = await getDoc(docRef);
-            return docSnap.exists() ? docSnap.data() : null;
-        } catch (error) {
-            console.error("Cloud Get Exam Error:", error);
-            return null;
-        }
-    }
-
-    async function deleteExamFromCloud(dateStr) {
-        try {
-            await deleteDoc(doc(db, "exams", dateStr));
-            alert(`✅ Successfully deleted cloud exam for ${dateStr}.`);
-        } catch (error) {
-            console.error("Cloud Delete Exam Error:", error);
-        }
-    }
-
     async function saveResultToCloud(dateStr, studentName, recordData) {
-        try {
-            const recordId = `${dateStr}_${studentName.replace(/\s+/g, '')}`;
-            await setDoc(doc(db, "records", recordId), recordData);
-        } catch (error) {
-            console.error("Cloud Save Result Error:", error);
-        }
+        await setDoc(doc(db, "records", recordData.recordId), recordData);
+    }
+    async function getResultsFromCloud(unitId) {
+        const snapshot = await getDocs(collection(db, "records"));
+        return snapshot.docs.map(d => ({...d.data(), recordId:d.id}))
+            .filter(r => r.unitId === unitId || (r.book && r.unit && unitKey(r.book,r.unit) === unitId))
+            .sort((a,b) => (b.submittedAt || b.date || '').localeCompare(a.submittedAt || a.date || ''));
     }
 
-    async function getResultsFromCloud(dateStr) {
-        try {
-            const querySnapshot = await getDocs(collection(db, "records"));
-            let results = [];
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                if (data.date === dateStr) results.push(data);
-            });
-            return results;
-        } catch (error) {
-            console.error("Cloud Get Results Error:", error);
-            return [];
-        }
-    }
 
     // Student directory is loaded from Name.xlsx in the same folder when this page starts.
     // Every record retains both required fields: HR (class) and Name (student name).
@@ -1023,7 +872,7 @@
             document.getElementById('screen-login').classList.add('hidden');
             document.getElementById('screen-admin').classList.remove('hidden');
             
-            await renderCalendar();
+            await renderUnits();
             return;
         }
 
@@ -1046,195 +895,109 @@
             document.getElementById('screen-login').classList.add('hidden');
             document.getElementById('screen-student-select').classList.remove('hidden');
 
-            await renderCalendar();
+            await renderUnits();
         } else {
             inputEl.value = '';
             inputEl.placeholder = "Not a LUYA Student";
         }
     }
 
-    async function renderCalendar() {
-        const year = currentCalDate.getFullYear();
-        const month = currentCalDate.getMonth();
-        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        
-        if (isAdmin) {
-            document.getElementById('calendar-month-year').innerText = `${monthNames[month]} ${year}`;
-            document.getElementById('admin-target-date').innerText = selectedDateStr;
-        } else {
-            document.getElementById('student-calendar-month-year').innerText = `${monthNames[month]} ${year}`;
-            document.getElementById('student-target-date').innerText = selectedDateStr;
-        }
-
-        const gridId = isAdmin ? 'calendar-grid' : 'student-calendar-grid';
-        const grid = document.getElementById(gridId);
-        grid.innerHTML = '';
-
-        const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        dayHeaders.forEach(dh => {
-            const el = document.createElement('div');
-            el.className = 'cal-day-header';
-            el.innerText = dh;
-            grid.appendChild(el);
-        });
-
-        const firstDay = new Date(year, month, 1).getDay();
-
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-        const todayStr = getFormattedDate(new Date());
-
-        let examDates = new Set();
-        let uncorrectedDates = new Set();
-        let submittedDates = new Set();
-        let absentDates = new Set();
-        let thumbsUpDates = new Set();
-
+    let selectedBook = 1, selectedUnit = 1;
+    let unitStates = {}, unitRecords = [], activeRecord = null, activeUnit = null;
+    let loadingExam = false, savingResult = false;
+    const unitKey = (book, unit) => `B${book}U${String(unit).padStart(2,'0')}`;
+    const unitLabel = (book, unit) => `Book${book} / Unit${String(unit).padStart(2,'0')}`;
+    const recordLabel = r => r.book && r.unit ? unitLabel(r.book,r.unit) : 'Legacy exam';
+    const isMine = r => normalizeLoginValue(r.studentName) === normalizeLoginValue(currentUser) && getStudentHR(r.studentName,r.studentHR) === currentUserHR;
+    const isDue = state => state && state.isOpen === true && /^\d{4}-\d{2}-\d{2}$/.test(state.openedDate) && state.openedDate <= getFormattedDate();
+    async function loadUnitExam(book, unit) {
+        const filename = `${unitKey(book,unit)}.xlsx`;
+        const response = await fetch(filename, {cache:'no-store'});
+        if (!response.ok) throw new Error(`${filename}: HTTP ${response.status}`);
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        if (bytes[0] !== 0x50 || bytes[1] !== 0x4b) throw new Error(`${filename}: invalid XLSX file`);
+        const workbook = XLSX.read(bytes, {type:'array'});
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        if (!sheet) throw new Error(`${filename}: worksheet missing`);
+        const parsed = parseExamData(XLSX.utils.sheet_to_json(sheet, {defval:''}));
+        if (!parsed.questions.length || parsed.questions.some(q => !q.stem || !q.answer || !Number.isFinite(q.points) || q.points < 0) || !parsed.questions.some(q => q.points > 0))
+            throw new Error(`${filename}: no valid exam; check question, answer and points`);
+        return parsed;
+    }
+    async function renderUnits() {
+        const host = document.getElementById(isAdmin ? 'admin-units' : 'student-units');
+        host.textContent = '⏳ Loading units...';
         try {
-            const examsSnap = await getDocs(collection(db, "exams"));
-            examsSnap.forEach(d => examDates.add(d.id));
-
-            if (!isAdmin) {
-                const recordsSnap = await getDocs(collection(db, "records"));
-                recordsSnap.forEach(d => {
-                    const data = d.data();
-                    if (data.studentName && data.studentName.toLowerCase() === currentUser.toLowerCase()) {
-                        submittedDates.add(data.date);
-                        if (data.details && data.details.some(item => !item.isCorrect)) {
-                            uncorrectedDates.add(data.date);
-                        } else if (Number(data.score) === 100 || (data.details && data.details.length > 0)) {
-                            thumbsUpDates.add(data.date);
-                        }
-                    }
-                });
-
-                examDates.forEach(dateStr => {
-                    if (dateStr <= todayStr && !submittedDates.has(dateStr)) {
-                        absentDates.add(dateStr);
-                    }
-                });
+            const [states, records] = await Promise.all([getDocs(collection(db,'examUnits')),getDocs(collection(db,'records'))]);
+            unitStates = Object.fromEntries(states.docs.map(d => [d.id,d.data()]));
+            unitRecords = records.docs.map(d => ({...d.data(),recordId:d.id}));
+            drawUnits();
+            if (!isAdmin) checkStudentUnitExam();
+        } catch(error) { host.textContent = '❌ Unable to load units. Please reload and check the connection / Firestore permissions.'; }
+    }
+    function drawUnits() {
+        const host = document.getElementById(isAdmin ? 'admin-units' : 'student-units');
+        host.replaceChildren();
+        for(let book=1;book<=6;book++) {
+            const row=document.createElement('section'); row.className='book-row';
+            row.innerHTML=`<div class="book-cover"><img src="b0${book}.jpg" alt="Book ${book}"><h3>Book ${book}</h3></div><div class="unit-grid"></div>`;
+            row.querySelector('img').onerror=function(){this.onerror=null;this.src=`B0${book}.jpg`;};
+            const grid=row.querySelector('.unit-grid');
+            for(let unit=1;unit<=30;unit++) {
+                const key=unitKey(book,unit), state=unitStates[key] || {};
+                const records=unitRecords.filter(r => (r.unitId===key || (r.book===book && r.unit===unit)) && isMine());
+                const pending=records.some(r => (r.details || []).some(d => !d.isCorrect));
+                const icon=isAdmin ? '' : pending ? '❌' : records.length ? '👍' : isDue(state) ? '⛔' : '';
+                const card=document.createElement('div');card.className='unit-card'+(book===selectedBook && unit===selectedUnit ? ' selected':'');
+                card.innerHTML=`<button class="unit-name ${state.isOpen ? 'open':''}">${icon}Unit${String(unit).padStart(2,'0')}</button><div class="unit-date"></div><button class="unit-switch" role="switch" aria-label="${unitLabel(book,unit)}" aria-checked="${state.isOpen===true}" ${!isAdmin ? 'disabled':''}>${state.isOpen ? 'On':'Off'}</button>`;
+                card.querySelector('.unit-date').textContent=state.isOpen ? (state.openedDate || '').replaceAll('-','.') : '';
+                card.querySelector('.unit-name').onclick=()=> {selectedBook=book;selectedUnit=unit;drawUnits();if(isAdmin){document.getElementById('admin-selected-unit').textContent=unitLabel(book,unit);document.getElementById('records-list').textContent='Click Unit Records to view this unit.';}else checkStudentUnitExam();};
+                card.querySelector('.unit-switch').onclick=e=>toggleUnit(book,unit,e.currentTarget);
+                grid.appendChild(card);
             }
-        } catch(err) {
-            console.error("Error loading metadata:", err);
-        }
-
-        for (let i = 0; i < firstDay; i++) {
-            const emptyCell = document.createElement('div');
-            emptyCell.className = 'cal-day empty';
-            grid.appendChild(emptyCell);
-        }
-
-        for (let day = 1; day <= daysInMonth; day++) {
-            const cellDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const dayCell = document.createElement('div');
-            dayCell.className = 'cal-day';
-
-            if (!isAdmin && uncorrectedDates.has(cellDateStr)) {
-                dayCell.innerHTML = `<span style="font-size:0.75rem; margin-right:2px;">❌</span><span>${day}</span>`;
-            } else if (!isAdmin && absentDates.has(cellDateStr)) {
-                dayCell.innerHTML = `<span style="font-size:0.75rem; margin-right:2px;">⛔</span><span>${day}</span>`;
-            } else if (!isAdmin && thumbsUpDates.has(cellDateStr)) {
-                dayCell.innerHTML = `<span style="font-size:0.75rem; margin-right:2px;">👍</span><span>${day}</span>`;
-            } else {
-                dayCell.innerText = day;
-            }
-
-            if (cellDateStr === todayStr) dayCell.classList.add('today');
-            if (cellDateStr === selectedDateStr) dayCell.classList.add('selected');
-
-            if (examDates.has(cellDateStr)) {
-                const dot = document.createElement('div');
-                dot.className = 'has-exam-dot';
-                dayCell.appendChild(dot);
-            }
-
-            dayCell.onclick = async () => {
-                selectedDateStr = cellDateStr;
-                await renderCalendar();
-            };
-
-            grid.appendChild(dayCell);
-        }
-
-        if (isAdmin) {
-            await checkAdminDateExam();
-            await loadAdminStudentRecords();
-        } else {
-            await checkStudentDateExam();
+            host.appendChild(row);
         }
     }
-
-    async function changeMonth(offset) {
-        currentCalDate.setMonth(currentCalDate.getMonth() + offset);
-        await renderCalendar();
+    async function toggleUnit(book,unit,button) {
+        if(!isAdmin || button.disabled) return;
+        button.disabled=true;
+        const key=unitKey(book,unit), opening=!unitStates[key]?.isOpen;
+        try {
+            if(opening) await loadUnitExam(book,unit);
+            const state={book,unit,isOpen:opening,openedDate:opening ? getFormattedDate() : (unitStates[key]?.openedDate || ''),updatedAt:new Date().toISOString()};
+            await setDoc(doc(db,'examUnits',key),state);
+            unitStates[key]=state; drawUnits();
+        } catch(error) {alert(`❌ ${error.message} — Unit status was not changed.`);button.disabled=false;}
+    }
+    function checkStudentUnitExam() {
+        const key=unitKey(selectedBook,selectedUnit), state=unitStates[key];
+        const msg=document.getElementById('student-status-msg'), button=document.getElementById('btn-start-student-exam');
+        document.getElementById('student-selected-unit').textContent=unitLabel(selectedBook,selectedUnit);
+        button.classList.add('hidden');
+        if(!isDue(state)) {msg.textContent='This unit is not open for testing.';return;}
+        const records=unitRecords.filter(r => (r.unitId===key || (r.book===selectedBook && r.unit===selectedUnit)) && isMine()).sort((a,b)=>(b.submittedAt || b.date).localeCompare(a.submittedAt || a.date));
+        const pending=records.find(r=>(r.details || []).some(d=>!d.isCorrect));
+        const record=pending || records[0];
+        msg.textContent=record ? `Initial Score: ${record.score}/${record.totalPossible} · Exam date: ${record.date}` : '✅ This unit is ready for your exam.';
+        button.textContent=pending ? '✍️ Start Correcting Mistakes' : record ? '🔍 View Exam Record' : '🚀 Start Exam';
+        button.onclick=()=>record && !pending ? viewPreviousResults(record) : startStudentExam(!!pending,pending);
+        button.classList.remove('hidden');
     }
 
-    async function checkAdminDateExam() {
-        const info = document.getElementById('admin-status-info');
-        const delBtn = document.getElementById('btn-delete-exam');
-        info.innerText = "⏳ Connecting to Cloud Database...";
-
-        const examData = await getExamFromCloud(selectedDateStr);
-
-        if (examData) {
-            info.className = "status-msg success";
-            info.innerText = `✅ Exam stored in Cloud for ${selectedDateStr}.`;
-            delBtn.classList.remove('hidden');
-        } else {
-            info.className = "status-msg error";
-            info.innerText = `⚠️ No exam uploaded yet for ${selectedDateStr}.`;
-            delBtn.classList.add('hidden');
-        }
-    }
-
-    async function handleAdminUpload(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const uploadDate = selectedDateStr || getFormattedDate(new Date());
-
-        const reader = new FileReader();
-        reader.onload = async function(evt) {
-            try {
-                const data = new Uint8Array(evt.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rawData = XLSX.utils.sheet_to_json(worksheet);
-
-                const parsed = parseExamData(rawData);
-                if (!parsed.questions || parsed.questions.length === 0) {
-                    alert('❌ No valid questions found in the file!');
-                    return;
-                }
-
-                await saveExamToCloud(uploadDate, parsed);
-                e.target.value = '';
-                await renderCalendar();
-            } catch (err) {
-                console.error("Upload error:", err);
-                alert('❌ Error parsing or uploading file to Cloud.');
-            }
-        };
-        reader.readAsArrayBuffer(file);
-    }
-
-    async function deleteExamForSelectedDate() {
-        if (confirm(`Are you sure you want to delete the Cloud exam for ${selectedDateStr}?`)) {
-            await deleteExamFromCloud(selectedDateStr);
-            await renderCalendar();
-        }
-    }
 
     async function loadAdminStudentRecords() {
-        document.getElementById('records-date-label').innerText = selectedDateStr;
+        if (!isAdmin) return;
+        const targetUnit = unitKey(selectedBook,selectedUnit);
         const container = document.getElementById('records-list');
         container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">⏳ Loading Cloud Records...</p>';
 
-        const records = await getResultsFromCloud(selectedDateStr);
+        let records;
+        try { records = await getResultsFromCloud(targetUnit); } catch(error) { container.textContent="❌ Unable to load records."; return; }
+        if(targetUnit !== unitKey(selectedBook,selectedUnit)) return;
         container.innerHTML = '';
 
         if (!records || records.length === 0) {
-            container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.9rem;">No students have completed the exam on ${selectedDateStr}.</p>`;
+            container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.9rem;">No students have completed the exam for ${unitLabel(selectedBook,selectedUnit)}.</p>`;
             return;
         }
 
@@ -1259,7 +1022,7 @@
             recEl.innerHTML = `
                 <div class="record-summary">
                     <span style="font-size:1rem; font-weight:700;">👤 <span style="color:#16a34a;">${getStudentHR(rec.studentName, rec.studentHR)}</span> <span style="color:#0f172a;">${rec.studentName}</span></span>
-                    <span>Initial Score: <strong style="color: var(--primary-color); font-size: 1.1rem;">${rec.score} / ${rec.totalPossible}</strong> ${isFullyCorrected ? '<span style="color:var(--success-color); font-size:0.85rem; font-weight:700;">(Correction Complete)</span>' : '<span style="color:var(--danger-color); font-size:0.85rem; font-weight:700;">(Needs Correction)</span>'}</span>
+                    <span>${recordLabel(rec)} · Exam date: ${rec.date}<br>Initial Score: <strong style="color: var(--primary-color); font-size: 1.1rem;">${rec.score} / ${rec.totalPossible}</strong> ${isFullyCorrected ? '<span style="color:var(--success-color); font-size:0.85rem; font-weight:700;">(Correction Complete)</span>' : '<span style="color:var(--danger-color); font-size:0.85rem; font-weight:700;">(Needs Correction)</span>'}</span>
                     <button class="btn btn-inline btn-secondary" onclick="toggleDetails('rec-detail-${idx}')">Details</button>
                 </div>
                 <div id="rec-detail-${idx}" class="hidden" style="margin-top: 10px;">
@@ -1295,6 +1058,7 @@
                         }
                         studentUncorrectedMap[studentKey].records.push({
                             date: data.date,
+                            label: recordLabel(data),
                             wrongCount: wrongItems.length,
                             totalQuestions: data.details.length
                         });
@@ -1332,7 +1096,7 @@
                     <thead>
                         <tr style="background:#fef2f2; border-bottom:2px solid #fecaca; color:#991b1b;">
                             <th style="padding:10px; text-align:left;">Class + Student Name</th>
-                            <th style="padding:10px;">Uncorrected Days</th>
+                            <th style="padding:10px;">Uncorrected Attempts</th>
                             <th style="padding:10px;">Details</th>
                         </tr>
                     </thead>
@@ -1361,7 +1125,7 @@
                 
                 let detailsListHtml = row.records.map(r => `
                     <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:#fff; border:1px solid #fee2e2; border-radius:6px; margin-bottom:6px; font-size:0.88rem;">
-                        <span>📅 Uncorrected Date: <strong style="color:#0f172a;">${r.date}</strong></span>
+                        <span>📅 Exam Date: <strong style="color:#0f172a;">${r.date} · ${r.label || ""}</strong></span>
                         <span style="color:var(--danger-color); font-weight:700;">❌ ${r.wrongCount} question(s) remaining (Total: ${r.totalQuestions})</span>
                     </div>
                 `).join('');
@@ -1370,7 +1134,7 @@
                     <tr style="border-bottom:1px solid #e2e8f0;">
                         <td style="padding:12px; text-align:left; font-size:1rem; font-weight:700;">👤 <span style="color:#16a34a;">${row.hr}</span> <span style="color:#0f172a;">${row.name}</span></td>
                         <td style="padding:12px; font-weight:800; color:var(--danger-color); font-size:1.05rem;">
-                            ${row.count} Day(s)
+                            ${row.count} Unit(s)
                         </td>
                         <td style="padding:12px;">
                             <button class="btn btn-inline btn-secondary" onclick="toggleDetails('${detailId}')">🔍 View Details</button>
@@ -1378,7 +1142,7 @@
                     </tr>
                     <tr id="${detailId}" class="hidden" style="background:#fff5f5;">
                         <td colspan="3" style="padding:12px; text-align:left;">
-                            <div style="font-weight:700; color:#991b1b; margin-bottom:8px;">📌 Uncorrected Dates & Details:</div>
+                            <div style="font-weight:700; color:#991b1b; margin-bottom:8px;">📌 Uncorrected Units & Details:</div>
                             ${detailsListHtml}
                         </td>
                     </tr>
@@ -1405,33 +1169,12 @@
         try {
             const todayStr = getFormattedDate(new Date());
             
-            const examsSnap = await getDocs(collection(db, "exams"));
-            let examDates = [];
-            examsSnap.forEach(doc => {
-                if (doc.id <= todayStr) {
-                    examDates.push(doc.id);
-                }
-            });
+            const states = await getDocs(collection(db,'examUnits'));
+            const openUnits = states.docs.map(d => ({...d.data(),unitId:d.id})).filter(isDue);
+            const recordsSnap = await getDocs(collection(db,'records'));
+            const submitted = recordsSnap.docs.map(d=>d.data());
+            const examDates = openUnits.map(u=>u.unitId);
 
-            examDates.sort((a, b) => b.localeCompare(a));
-
-            if (examDates.length === 0) {
-                container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">No historical exams published yet.</p>';
-                return;
-            }
-
-            const recordsSnap = await getDocs(collection(db, "records"));
-            let submittedMap = {};
-
-            recordsSnap.forEach(doc => {
-                const data = doc.data();
-                if (data.date && data.studentName) {
-                    if (!submittedMap[data.date]) {
-                        submittedMap[data.date] = new Set();
-                    }
-                    submittedMap[data.date].add(normalizeLoginValue(data.studentName));
-                }
-            });
 
             let studentAbsentMap = {};
 
@@ -1440,8 +1183,7 @@
                 const studentKey = `${student.hr}__${normalizedName}`;
                 
                 examDates.forEach(dateStr => {
-                    const submittedSet = submittedMap[dateStr] || new Set();
-                    if (!submittedSet.has(normalizedName)) {
+                    if (!submitted.some(r => (r.unitId===dateStr || (r.book && r.unit && unitKey(r.book,r.unit)===dateStr)) && normalizeLoginValue(r.studentName)===normalizedName && getStudentHR(r.studentName,r.studentHR)===student.hr)) {
                         if (!studentAbsentMap[studentKey]) {
                             studentAbsentMap[studentKey] = {
                                 name: student.name,
@@ -1449,7 +1191,8 @@
                                 dates: []
                             };
                         }
-                        studentAbsentMap[studentKey].dates.push(dateStr);
+                        const state = openUnits.find(u=>u.unitId===dateStr);
+                        studentAbsentMap[studentKey].dates.push(`${unitLabel(state.book,state.unit)} (Opened: ${state.openedDate})`);
                     }
                 });
             });
@@ -1484,7 +1227,7 @@
                     <thead>
                         <tr style="background:#f3e8ff; border-bottom:2px solid #d8b4fe; color:#6b21a8;">
                             <th style="padding:10px; text-align:left;">Class + Student Name</th>
-                            <th style="padding:10px;">Absent Days</th>
+                            <th style="padding:10px;">Absent Units</th>
                             <th style="padding:10px;">Details</th>
                         </tr>
                     </thead>
@@ -1521,15 +1264,15 @@
                     <tr style="border-bottom:1px solid #e2e8f0;">
                         <td style="padding:12px; text-align:left; font-size:1rem; font-weight:700;">👤 <span style="color:#16a34a;">${row.hr}</span> <span style="color:#0f172a;">${row.name}</span></td>
                         <td style="padding:12px; font-weight:800; color:var(--purple-color); font-size:1.05rem;">
-                            ${row.count} Day(s)
+                            ${row.count} Unit(s)
                         </td>
                         <td style="padding:12px;">
-                            <button class="btn btn-inline btn-secondary" onclick="toggleDetails('${detailId}')">🔍 View Absent Dates</button>
+                            <button class="btn btn-inline btn-secondary" onclick="toggleDetails('${detailId}')">🔍 View Absent Units</button>
                         </td>
                     </tr>
                     <tr id="${detailId}" class="hidden" style="background:#faf5ff;">
                         <td colspan="3" style="padding:12px; text-align:left;">
-                            <div style="font-weight:700; color:#6b21a8; margin-bottom:8px;">📌 Absent Dates Detailed List:</div>
+                            <div style="font-weight:700; color:#6b21a8; margin-bottom:8px;">📌 Absent Units Detailed List:</div>
                             ${detailsListHtml}
                         </td>
                     </tr>
@@ -1713,7 +1456,7 @@
                     <div class="student-record-item">
                         <div class="record-summary">
                             <span style="font-size: 1.1rem; font-weight: 700; color: var(--text-main);">📅 Date: ${rec.date}</span>
-                            <span>Initial Score: <strong style="color: var(--primary-color); font-size: 1.1rem;">${rec.score} / ${rec.totalPossible}</strong> 
+                            <span>${recordLabel(rec)} · Exam date: ${rec.date}<br>Initial Score: <strong style="color: var(--primary-color); font-size: 1.1rem;">${rec.score} / ${rec.totalPossible}</strong> 
                                 ${isFullyCorrected ? '<span style="color:var(--success-color); font-size:0.85rem; font-weight:700; margin-left:6px;">(Correction Complete)</span>' : '<span style="color:var(--danger-color); font-size:0.85rem; font-weight:700; margin-left:6px;">(Needs Correction)</span>'}
                             </span>
                             <button class="btn btn-inline btn-secondary" onclick="toggleDetails('history-rec-detail-${idx}')">Details</button>
@@ -1919,7 +1662,7 @@
                             ${badge}
                         </td>
                         <td style="padding:12px; text-align:left; font-size:1rem; font-weight:700;"><span style="color:#16a34a;">${row.hr}</span> <span style="color:#0f172a;">${row.name}</span></td>
-                        <td style="padding:12px;">${row.count} Day(s)</td>
+                        <td style="padding:12px;">${row.count} Unit(s)</td>
                         <td style="padding:12px; font-weight:800; font-size:1.1rem; color:var(--primary-color);">${row.totalScore} Pts</td>
                     </tr>
                 `;
@@ -1935,61 +1678,14 @@
         if (el) el.classList.toggle('hidden');
     }
 
-    async function checkStudentDateExam() {
-        const msg = document.getElementById('student-status-msg');
-        const startBtn = document.getElementById('btn-start-student-exam');
-        msg.innerText = "⏳ Syncing with Cloud Database...";
 
-        const targetDate = selectedDateStr || getFormattedDate(new Date());
-        const examData = await getExamFromCloud(targetDate);
-
-        if (!examData) {
-            msg.className = "status-msg error";
-            msg.innerText = (targetDate === getFormattedDate(new Date())) 
-                ? `❌ No exam published for today (${targetDate}).` 
-                : `❌ No exam scheduled for ${targetDate}.`;
-            startBtn.classList.add('hidden');
-            return;
-        }
-
-        const existingRecords = await getResultsFromCloud(targetDate);
-        const studentRecord = existingRecords.find(r => r.studentName.toLowerCase() === currentUser.toLowerCase());
-
-        if (studentRecord) {
-            const wrongQuestions = (studentRecord.details || []).filter(d => !d.isCorrect);
-            if (wrongQuestions.length === 0) {
-                msg.className = "status-msg success";
-                msg.innerText = `🎉 You completed all corrections for ${targetDate}! (Initial Exam Score: ${studentRecord.score}/${studentRecord.totalPossible})`;
-                startBtn.className = "btn btn-inline";
-                startBtn.innerText = "🔍 View Exam Record";
-                startBtn.onclick = () => viewPreviousResults(studentRecord);
-                startBtn.classList.remove('hidden');
-            } else {
-                msg.className = "status-msg warning";
-                msg.innerText = `📝 Initial Score: ${studentRecord.score}/${studentRecord.totalPossible}. ${wrongQuestions.length} question(s) need correction!`;
-                startBtn.className = "btn btn-inline btn-warning";
-                startBtn.innerText = "✍️ Start Correcting Mistakes";
-                startBtn.onclick = () => startStudentExam(true);
-                startBtn.classList.remove('hidden');
-            }
-        } else {
-            msg.className = "status-msg success";
-            msg.innerText = (targetDate === getFormattedDate(new Date())) 
-                ? `✅ Today's exam is ready! (${targetDate})` 
-                : `✅ Exam available for ${targetDate}!`;
-            startBtn.className = "btn";
-            startBtn.innerText = "🚀 Start Exam";
-            startBtn.onclick = () => startStudentExam(false);
-            startBtn.classList.remove('hidden');
-        }
-    }
 
     function viewPreviousResults(studentRecord) {
         document.getElementById('screen-student-select').classList.add('hidden');
         document.getElementById('screen-result').classList.remove('hidden');
 
         document.getElementById('result-status-title').innerText = "Exam Record Overview";
-        document.getElementById('result-student-name').innerText = `Student: ${studentRecord.studentName} (${studentRecord.date})`;
+        document.getElementById('result-student-name').innerText = `Student: ${studentRecord.studentName} (${studentRecord.date}) · ${recordLabel(studentRecord)}`;
         document.getElementById('final-score').innerText = `Initial Score: ${studentRecord.score} / ${studentRecord.totalPossible} Points`;
 
         let resultListHtml = '';
@@ -2012,40 +1708,28 @@
         document.getElementById('result-list').innerHTML = resultListHtml;
     }
 
-    async function startStudentExam(isCorrection = false) {
-        const targetDate = selectedDateStr || getFormattedDate(new Date());
-        const examData = await getExamFromCloud(targetDate);
-        if (!examData) return;
-
-        currentExamData = examData;
-        sectionDefs = currentExamData.sectionDefs || {};
-        const fullQuestions = currentExamData.questions || [];
-
-        isCorrectionMode = isCorrection;
-
-        if (isCorrectionMode) {
-            const existingRecords = await getResultsFromCloud(targetDate);
-            const studentRecord = existingRecords.find(r => r.studentName.toLowerCase() === currentUser.toLowerCase());
-
-            if (studentRecord) {
-                const wrongIds = (studentRecord.details || []).filter(d => !d.isCorrect).map(d => d.id);
-                questions = fullQuestions.filter(q => wrongIds.includes(q.id));
-            } else {
-                questions = fullQuestions;
-            }
-        } else {
-            questions = fullQuestions;
-        }
-
-        currentIndex = 0;
-        userAnswers = {};
-        lastSectionType = null;
-        isExamActive = true; // 啟用防誤刷保護
-
-        document.getElementById('screen-student-select').classList.add('hidden');
-        document.getElementById('screen-exam').classList.remove('hidden');
-        renderQuestion();
+    async function startStudentExam(isCorrection=false, correctionRecord=null) {
+        if(isAdmin || loadingExam || isExamActive) return;
+        loadingExam=true;
+        const book=selectedBook, unit=selectedUnit;
+        try {
+            const state=await getDoc(doc(db,'examUnits',unitKey(book,unit)));
+            if(!state.exists() || !isDue(state.data())) throw new Error('This unit is closed.');
+            const exam=await loadUnitExam(book,unit);
+            activeUnit={book,unit,unitId:unitKey(book,unit)};
+            activeRecord=isCorrection ? structuredClone(correctionRecord) : {recordId:doc(collection(db,'records')).id,studentName:currentUser,studentHR:currentUserHR,...activeUnit,date:getFormattedDate(),score:0,totalPossible:0,details:[]};
+            if(isCorrection && !activeRecord) throw new Error('Correction record unavailable.');
+            currentExamData=exam; sectionDefs=exam.sectionDefs || {}; isCorrectionMode=isCorrection;
+            questions=isCorrection ? exam.questions.filter(q=>activeRecord.details.some(d=>d.id===q.id && !d.isCorrect)) : exam.questions;
+            if(!questions.length) throw new Error('No questions available.');
+            if(isCorrection && activeRecord.details.filter(d=>!d.isCorrect).some(d=>!questions.some(q=>q.id===d.id && q.stem===d.stem && q.answer===d.correctAns))) throw new Error('The question file has changed; contact Administrator before correcting.');
+            currentIndex=0; userAnswers={}; lastSectionType=null; isExamActive=true;
+            document.getElementById('screen-student-select').classList.add('hidden');
+            document.getElementById('screen-exam').classList.remove('hidden');
+            renderQuestion();
+        } catch(error) {alert(`❌ ${error.message}`);} finally {loadingExam=false;}
     }
+
 
     function parseExamData(rows) {
         let defs = {};
@@ -2334,20 +2018,13 @@
         document.getElementById('screen-exam').classList.add('hidden');
         document.getElementById('screen-result').classList.remove('hidden');
 
-        const targetDate = selectedDateStr || getFormattedDate(new Date());
-        const existingRecords = await getResultsFromCloud(targetDate);
-        let studentRecord = existingRecords.find(r => r.studentName.toLowerCase() === currentUser.toLowerCase());
+        if (savingResult) return;
+        savingResult = true;
+        let studentRecord = structuredClone(activeRecord);
+        if (!isCorrectionMode) {studentRecord.date=getFormattedDate();studentRecord.submittedAt=new Date().toISOString();}
+        else studentRecord.correctedAt=new Date().toISOString();
+        const targetDate=studentRecord.date;
 
-        if (!studentRecord) {
-            studentRecord = {
-                studentName: currentUser,
-                studentHR: currentUserHR,
-                date: targetDate,
-                score: 0,
-                totalPossible: 0,
-                details: []
-            };
-        }
 
         if (isCorrectionMode && studentRecord.details && studentRecord.details.length > 0) {
             questions.forEach(q => {
@@ -2393,12 +2070,21 @@
             studentRecord.details = detailsRecord;
         }
 
-        await saveResultToCloud(targetDate, currentUser, studentRecord);
+        try {
+            await saveResultToCloud(targetDate, currentUser, studentRecord);
+            activeRecord=studentRecord;
+        } catch(error) {
+            alert('❌ Result was not saved. Please press Submit again to retry.');
+            document.getElementById('screen-result').classList.add('hidden');
+            document.getElementById('screen-exam').classList.remove('hidden');
+            isExamActive=true;
+            return;
+        } finally {savingResult=false;}
 
         const remainingWrong = (studentRecord.details || []).filter(d => !d.isCorrect).length;
 
         document.getElementById('result-status-title').innerText = isCorrectionMode ? "Correction Result" : "Test Completed!";
-        document.getElementById('result-student-name').innerText = `Student: ${currentUser} (${targetDate})`;
+        document.getElementById('result-student-name').innerText = `Student: ${currentUser} (${targetDate}) · ${recordLabel(studentRecord)}`;
         
         document.getElementById('final-score').innerHTML = `
             Initial Exam Score: ${studentRecord.score} / ${studentRecord.totalPossible}<br>
@@ -2433,9 +2119,6 @@
     // 全局掛載以供 HTML 事件呼叫
     window.verifyLogin = verifyLogin;
     window.resetLoginInput = resetLoginInput;
-    window.changeMonth = changeMonth;
-    window.handleAdminUpload = handleAdminUpload;
-    window.deleteExamForSelectedDate = deleteExamForSelectedDate;
     window.loadAdminStudentRecords = loadAdminStudentRecords;
     window.calculateWeeklyLeaderboard = calculateWeeklyLeaderboard;
     window.closeWeeklyLeaderboardModal = closeWeeklyLeaderboardModal;
