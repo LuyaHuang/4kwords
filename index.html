@@ -220,6 +220,23 @@
         .login-actions { display:flex; justify-content:center; gap:12px; margin-top:12px; }
         .login-actions .btn { width:150px; min-height:48px; margin:0; padding:12px; }
         #records-list { overflow-x:auto; }
+        .report-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+        .report-heading h3 { margin:0 !important; flex:1; }
+        .print-report-button { flex:none; border:1px solid var(--border-color); background:#fff; border-radius:8px; padding:8px 12px; font-size:1.2rem; cursor:pointer; }
+        #report-print-area { display:none; }
+        @media print {
+            @page { size:A4 portrait; margin:12mm; }
+            body.printing-report { display:block; padding:0; background:white; }
+            body.printing-report > * { display:none !important; }
+            body.printing-report > #report-print-area { display:block !important; }
+            #report-print-area * { color:#111 !important; background:white !important; box-shadow:none !important; text-shadow:none !important; }
+            #report-print-area > div { border:0 !important; padding:0 !important; }
+            #report-print-area table { width:100% !important; font-size:10pt !important; }
+            #report-print-area thead { display:table-header-group; }
+            #report-print-area tr { break-inside:avoid; }
+            #report-print-area td, #report-print-area th { padding:6px !important; overflow-wrap:anywhere; }
+            #report-print-area h3 { font-size:14pt !important; margin-bottom:12px !important; }
+        }
         @media(max-width:760px) { .container {padding:18px;} .book-row {grid-template-columns:90px minmax(0,1fr);gap:10px;padding:10px;} .unit-grid {grid-template-columns:repeat(3,minmax(0,1fr));} .header-container {flex-wrap:wrap;gap:12px;} .header-text h1 {font-size:1.6rem;} .admin-btn-grid {grid-template-columns:repeat(2,minmax(0,1fr));} }
         @media(max-width:440px) { .book-row {grid-template-columns:1fr;} .book-cover {display:flex;align-items:center;gap:14px;} .book-cover img {width:75px;} .unit-grid {grid-template-columns:repeat(2,minmax(0,1fr));} }
 
@@ -1296,7 +1313,7 @@
 
         let tableHtml = `
             <div style="background:#fff; padding:16px; border-radius:10px; border:1px solid #e2e8f0; text-align:center;">
-                <h3 style="color:var(--danger-color); margin-bottom:12px; font-size:1.15rem;">❌ Correction List Track</h3>
+                <div class="report-heading"><h3 style="color:var(--danger-color); margin-bottom:12px; font-size:1.15rem;">❌ Correction List Track</h3><button class="print-report-button" aria-label="Print Correction List as PDF" title="Print / Save as PDF" onclick="printTrackReport('Correction List Track')">🖨️</button></div>
                 <table style="width:100%; border-collapse:collapse; text-align:center; font-size:0.95rem;">
                     <thead>
                         <tr style="background:#fef2f2; border-bottom:2px solid #fecaca; color:#991b1b;">
@@ -1428,7 +1445,7 @@
 
         let tableHtml = `
             <div style="background:#fff; padding:16px; border-radius:10px; border:1px solid #e2e8f0; text-align:center;">
-                <h3 style="color:var(--purple-color); margin-bottom:12px; font-size:1.15rem;">⛔ Absent List Track (Total Exams: ${totalExamsCount})</h3>
+                <div class="report-heading"><h3 style="color:var(--purple-color); margin-bottom:12px; font-size:1.15rem;">⛔ Absent List Track (Total Exams: ${totalExamsCount})</h3><button class="print-report-button" aria-label="Print Absent List as PDF" title="Print / Save as PDF" onclick="printTrackReport('Absent List Track')">🖨️</button></div>
                 <table style="width:100%; border-collapse:collapse; text-align:center; font-size:0.95rem;">
                     <thead>
                         <tr style="background:#f3e8ff; border-bottom:2px solid #d8b4fe; color:#6b21a8;">
@@ -2321,6 +2338,32 @@
         });
         document.getElementById('result-list').innerHTML = resultListHtml;
     }
+
+    function printTrackReport(title) {
+        if(!isAdmin || document.getElementById('report-print-area')) return;
+        const source=document.getElementById('records-list');
+        if(!source.querySelector('table')) return;
+        const area=document.createElement('div');
+        area.id='report-print-area';
+        const copy=source.cloneNode(true);
+        copy.removeAttribute('id');
+        copy.querySelectorAll('button').forEach(button=>button.remove());
+        copy.querySelectorAll('.hidden').forEach(item=>item.classList.remove('hidden'));
+        area.appendChild(copy);
+        const originalTitle=document.title;
+        const cleanup=()=>{
+            document.body.classList.remove('printing-report');
+            area.remove();
+            document.title=originalTitle;
+            window.removeEventListener('afterprint',cleanup);
+        };
+        document.body.appendChild(area);
+        document.title=`${title} - ${getFormattedDate()}`;
+        document.body.classList.add('printing-report');
+        window.addEventListener('afterprint',cleanup);
+        try {window.print();} catch(error) {cleanup();alert('Unable to open printing. Please try again.');}
+    }
+    window.printTrackReport=printTrackReport;
 
     // Load Name.xlsx automatically after the page DOM is ready.
     loadStudentDirectory().then(restorePageSession);
