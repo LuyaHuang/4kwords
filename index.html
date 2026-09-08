@@ -528,7 +528,6 @@
         </div>
         <div class="login-actions">
         <button id="btn-login" class="btn btn-inline" onclick="verifyLogin()" disabled>Login</button>
-        <button id="btn-google-admin" class="btn btn-inline btn-secondary" onclick="loginGoogleAdmin()">Admin</button>
         </div>
         <p id="admin-login-message" class="status-msg" aria-live="polite"></p>
     </div>
@@ -702,7 +701,7 @@
     const authReady = setPersistence(auth, inMemoryPersistence);
     authReady.catch(error => console.error('Authentication initialization:', error));
     async function loginGoogleAdmin() {
-        const button=document.getElementById('btn-google-admin');
+        const button=document.getElementById('btn-login');
         const message=document.getElementById('admin-login-message');
         if(button.disabled) return;
         button.disabled=true;
@@ -717,6 +716,8 @@
                 throw new Error(`僅限 ${ADMIN_EMAIL} 管理員帳號登入。`);
             }
             isAdmin=true;currentUser='Administrator';currentUserHR='';
+            selectedBook=null;selectedUnit=null;
+            document.getElementById('records-list').textContent='Please select a unit to view its records.';
             document.getElementById('user-role-icon').innerText='⚙️';
             document.getElementById('user-role-label').innerText='Administrator';
             document.getElementById('current-user-name').innerText=ADMIN_EMAIL;
@@ -1058,6 +1059,10 @@
 
     async function loadAdminStudentRecords() {
         if (!isAdmin) return;
+        if (selectedBook === null || selectedUnit === null) {
+            document.getElementById('records-list').textContent='Please select a unit to view its records.';
+            return;
+        }
         const targetUnit = unitKey(selectedBook,selectedUnit);
         const container = document.getElementById('records-list');
         const heading = `<h3 style="color:var(--primary-color);margin:16px 0;">📚 ${unitLabel(selectedBook,selectedUnit)} · Unit Records</h3>`;
