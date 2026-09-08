@@ -213,6 +213,8 @@
         .unit-switch[aria-checked="true"] { background:#dcfce7; color:#166534; border-color:#86efac; }
         .unit-switch:disabled { opacity:1; cursor:default; }
         .record-summary { flex-wrap:wrap; gap:10px; }
+        .login-actions { display:flex; justify-content:center; gap:12px; margin-top:12px; }
+        .login-actions .btn { width:150px; min-height:48px; margin:0; padding:12px; }
         #records-list { overflow-x:auto; }
         @media(max-width:760px) { .container {padding:18px;} .book-row {grid-template-columns:90px minmax(0,1fr);gap:10px;padding:10px;} .unit-grid {grid-template-columns:repeat(3,minmax(0,1fr));} .header-container {flex-wrap:wrap;gap:12px;} .header-text h1 {font-size:1.6rem;} .admin-btn-grid {grid-template-columns:repeat(2,minmax(0,1fr));} }
         @media(max-width:440px) { .book-row {grid-template-columns:1fr;} .book-cover {display:flex;align-items:center;gap:14px;} .book-cover img {width:75px;} .unit-grid {grid-template-columns:repeat(2,minmax(0,1fr));} }
@@ -520,8 +522,10 @@
         <div>
             <input type="text" id="input-username" class="input-text" placeholder="e.g., Peter Pan (Full English Name)" onkeypress="if(event.key==='Enter') verifyLogin()" onfocus="resetLoginInput()">
         </div>
-        <button id="btn-login" class="btn btn-inline" onclick="verifyLogin()" disabled>Loading student list...</button>
-        <button id="btn-google-admin" class="btn btn-inline btn-secondary" onclick="loginGoogleAdmin()" style="margin-top:16px;">Administrator · Google 登入</button>
+        <div class="login-actions">
+        <button id="btn-login" class="btn btn-inline" onclick="verifyLogin()" disabled>Login</button>
+        <button id="btn-google-admin" class="btn btn-inline btn-secondary" onclick="loginGoogleAdmin()">Admin</button>
+        </div>
         <p id="admin-login-message" class="status-msg" aria-live="polite"></p>
     </div>
 
@@ -936,6 +940,8 @@
     const unitKey = (book, unit) => `B${book}U${String(unit).padStart(2,'0')}`;
     const unitLabel = (book, unit) => `Book${book} / Unit${String(unit).padStart(2,'0')}`;
     const recordLabel = r => r.book && r.unit ? unitLabel(r.book,r.unit) : 'Legacy exam';
+    const recordDetails = r => Array.isArray(r?.details) ? r.details.filter(d => d && typeof d === 'object') : [];
+    const recordTime = r => typeof r.submittedAt === 'string' ? r.submittedAt : typeof r.date === 'string' ? r.date : '';
     const isMine = r => normalizeLoginValue(r.studentName) === normalizeLoginValue(currentUser) && getStudentHR(r.studentName,r.studentHR) === currentUserHR;
     const isDue = state => state && state.isOpen === true && /^\d{4}-\d{2}-\d{2}$/.test(state.openedDate) && state.openedDate <= getFormattedDate();
     async function loadUnitExam(book, unit) {
@@ -995,13 +1001,13 @@
             const grid=row.querySelector('.unit-grid');
             for(let unit=1;unit<=30;unit++) {
                 const key=unitKey(book,unit), state=unitStates[key] || {};
-                const records=unitRecords.filter(r => (r.unitId===key || (r.book===book && r.unit===unit)) && isMine());
-                const pending=records.some(r => (r.details || []).some(d => !d.isCorrect));
+                const records=unitRecords.filter(r => (r.unitId===key || (r.book===book && r.unit===unit)) && isMine(r));
+                const pending=records.some(r => recordDetails(r).some(d => !d.isCorrect));
                 const icon=isAdmin || !unitRecordsLoaded ? '' : pending ? '❌' : records.length ? '👍' : isDue(state) ? '⛔' : '';
                 const card=document.createElement('div');card.className='unit-card'+(book===selectedBook && unit===selectedUnit ? ' selected':'');
                 card.innerHTML=`<button class="unit-name ${state.isOpen ? 'open':''}">${icon}Unit${String(unit).padStart(2,'0')}</button><div class="unit-date"></div>${isAdmin ? `<button class="unit-switch" role="switch" aria-label="${unitLabel(book,unit)}" aria-checked="${state.isOpen===true}">${state.isOpen ? 'On':'Off'}</button>` : ''}`;
-                card.querySelector('.unit-date').textContent=state.isOpen ? (state.openedDate || '').replaceAll('-','.') : '';
-                card.querySelector('.unit-name').onclick=()=> {selectedBook=book;selectedUnit=unit;drawUnits();if(isAdmin){document.getElementById('admin-selected-unit').textContent=unitLabel(book,unit);document.getElementById('records-list').textContent='Click Unit Records to view this unit.';}else checkStudentUnitExam();};
+                card.querySelector('.unit-date').textContent=state.isOpen && typeof state.openedDate === 'string' ? state.openedDate.replaceAll('-','.') : '';
+                card.querySelector('.unit-name').onclick=()=> {selectedBook=book;selectedUnit=unit;drawUnits();if(isAdmin){document.getElementById('admin-selected-unit').textContent=unitLabel(book,unit);void loadAdminStudentRecords();}else checkStudentUnitExam();};
                 if (isAdmin) card.querySelector('.unit-switch').onclick=e=>toggleUnit(book,unit,e.currentTarget);
                 grid.appendChild(card);
             }
@@ -1037,8 +1043,8 @@
         button.classList.add('hidden');
         if(!unitStatesLoaded || !unitRecordsLoaded) {msg.textContent='Book catalogue ready. Waiting for cloud status / exam records; reload if synchronization fails.';return;}
         if(!isDue(state)) {msg.textContent='Please select a unit to take the test.';return;}
-        const records=unitRecords.filter(r => (r.unitId===key || (r.book===selectedBook && r.unit===selectedUnit)) && isMine()).sort((a,b)=>(b.submittedAt || b.date).localeCompare(a.submittedAt || a.date));
-        const pending=records.find(r=>(r.details || []).some(d=>!d.isCorrect));
+        const records=unitRecords.filter(r => (r.unitId===key || (r.book===selectedBook && r.unit===selectedUnit)) && isMine(r)).sort((a,b)=>recordTime(b).localeCompare(recordTime(a)));
+        const pending=records.find(r=>recordDetails(r).some(d=>!d.isCorrect));
         const record=pending || records[0];
         msg.textContent=record ? `Initial Score: ${record.score}/${record.totalPossible} · Exam date: ${record.date}` : '✅ This unit is ready for your exam.';
         button.textContent=pending ? '✍️ Start Correcting Mistakes' : record ? '🔍 View Exam Record' : '🚀 Start Exam';
@@ -1051,15 +1057,16 @@
         if (!isAdmin) return;
         const targetUnit = unitKey(selectedBook,selectedUnit);
         const container = document.getElementById('records-list');
-        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">⏳ Loading Cloud Records...</p>';
+        const heading = `<h3 style="color:var(--primary-color);margin:16px 0;">📚 ${unitLabel(selectedBook,selectedUnit)} · Unit Records</h3>`;
+        container.innerHTML = heading + '<p style="color: var(--text-muted); font-size: 0.9rem;">⏳ Loading Cloud Records...</p>';
 
         let records;
         try { records = await getResultsFromCloud(targetUnit); } catch(error) { container.textContent="❌ Unable to load records."; return; }
         if(targetUnit !== unitKey(selectedBook,selectedUnit)) return;
-        container.innerHTML = '';
+        container.innerHTML = heading;
 
         if (!records || records.length === 0) {
-            container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.9rem;">No students have completed the exam for ${unitLabel(selectedBook,selectedUnit)}.</p>`;
+            container.innerHTML = heading + `<p style="color: var(--text-muted); font-size: 0.9rem;">No students have completed the exam for ${unitLabel(selectedBook,selectedUnit)}.</p>`;
             return;
         }
 
@@ -1067,9 +1074,9 @@
             const recEl = document.createElement('div');
             recEl.className = 'student-record-item';
 
-            const isFullyCorrected = rec.details && !rec.details.some(d => !d.isCorrect);
+            const isFullyCorrected = recordDetails(rec).length > 0 && !recordDetails(rec).some(d => !d.isCorrect);
 
-            let detailsHtml = (rec.details || []).map(d => `
+            let detailsHtml = recordDetails(rec).map(d => `
                 <div class="result-card ${d.isCorrect ? 'correct' : 'incorrect'}" style="margin-top: 6px; font-size: 0.85rem;">
                     <div class="res-header">
                         <span>Q${d.id}. ${d.stem} ${d.isCorrected ? '<span class="badge-corrected">Corrected</span>' : ''}</span>
@@ -2201,3 +2208,4 @@
 </script>
 </body>
 </html>
+
