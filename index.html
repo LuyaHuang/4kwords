@@ -539,7 +539,6 @@
         
         <p id="admin-sync-status" class="status-msg" aria-live="polite"></p>
         <div id="admin-units"></div>
-        <p id="admin-selected-unit" class="status-msg">Book1 / Unit01</p>
 
         <!-- Admin View Records -->
         <div class="records-section">
@@ -1011,7 +1010,7 @@
                 const card=document.createElement('div');card.className='unit-card'+(book===selectedBook && unit===selectedUnit ? ' selected':'');
                 card.innerHTML=`<div class="unit-heading"><button class="unit-name ${state.isOpen ? 'open':''}">${icon}Unit${String(unit).padStart(2,'0')}</button>${isAdmin ? `<button class="unit-switch" role="switch" aria-label="${unitLabel(book,unit)}" aria-checked="${state.isOpen===true}">${state.isOpen ? 'On':'Off'}</button>` : ''}</div><div class="unit-date"></div>`;
                 card.querySelector('.unit-date').textContent=state.isOpen && typeof state.openedDate === 'string' ? state.openedDate.replaceAll('-','.') : '';
-                card.querySelector('.unit-name').onclick=()=> {selectedBook=book;selectedUnit=unit;drawUnits();if(isAdmin){document.getElementById('admin-selected-unit').textContent=unitLabel(book,unit);void loadAdminStudentRecords();}else checkStudentUnitExam();};
+                card.querySelector('.unit-name').onclick=()=> {selectedBook=book;selectedUnit=unit;drawUnits();if(isAdmin){void loadAdminStudentRecords();}else checkStudentUnitExam();};
                 if (isAdmin) card.querySelector('.unit-switch').onclick=e=>toggleUnit(book,unit,e.currentTarget);
                 grid.appendChild(card);
             }
