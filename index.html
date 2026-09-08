@@ -861,14 +861,15 @@
     }
     window.addEventListener('beforeunload',savePageSession);
     window.addEventListener('pagehide',savePageSession);
-    function returnToMenu() {
+    async function returnToMenu() {
         if(isExamActive || savingResult) return;
+        const homeScreen=isAdmin ? 'screen-admin' : 'screen-student-select';
         for(const id of ['screen-login','screen-admin','screen-student-select','screen-exam','screen-result'])
-            document.getElementById(id).classList.toggle('hidden',id!=='screen-login');
-        document.getElementById('input-username').value='';
+            document.getElementById(id).classList.toggle('hidden',id!==homeScreen);
         window.scrollTo(0,0);
         savePageSession();
-        document.getElementById('input-username').focus();
+        await renderUnits();
+        savePageSession();
     }
     window.returnToMenu=returnToMenu;
     async function logoutUser() {
