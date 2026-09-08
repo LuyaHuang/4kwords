@@ -515,6 +515,7 @@
 
     <!-- Student / Admin Badge -->
     <div id="user-display" class="user-badge-wrapper hidden">
+        <button class="btn btn-inline btn-secondary" onclick="logoutUser()" style="margin-bottom:10px;">Sign out / Switch User</button>
         <div class="user-badge">
             <span id="user-role-icon">👤</span> <span id="user-role-label">Student</span>: <span id="current-user-name"></span>
         </div>
@@ -599,7 +600,7 @@
 
         <h3 style="margin-bottom: 14px;">Answer Breakdown</h3>
         <div id="result-list"></div>
-        <button class="btn" onclick="location.reload()" style="margin-top: 18px;">Return to Menu / Switch User</button>
+        <button class="btn" onclick="logoutUser()" style="margin-top: 18px;">Return to Menu / Switch User</button>
     </div>
 </div>
 
@@ -692,7 +693,7 @@
 <!-- Firebase & Application Script -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, setPersistence, inMemoryPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -709,7 +710,7 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
     const ADMIN_EMAIL = 'huang@luya.academy';
-    const authReady = setPersistence(auth, inMemoryPersistence);
+    const authReady = setPersistence(auth, browserSessionPersistence);
     authReady.catch(error => console.error('Authentication initialization:', error));
     async function loginGoogleAdmin() {
         const button=document.getElementById('btn-login');
@@ -842,28 +843,70 @@
     let lastSectionType = null;
     let isExamActive = false; // 作答狀態鎖定標記
 
-    // 重新整理防誤觸防護
-    window.addEventListener('keydown', function(e) {
-        if (!isExamActive) return;
-        if (e.key === 'F5' || e.keyCode === 116) {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-        }
-        if ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R' || e.keyCode === 82)) {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-        }
-    });
-
-    window.addEventListener('beforeunload', function(e) {
-        if (isExamActive) {
-            e.preventDefault();
-            e.returnValue = '作答進行中，確定要離開或重新整理嗎？未交卷的答案可能會遺失！';
-            return '作答進行中，確定要離開或重新整理嗎？未交卷的答案可能會遺失！';
-        }
-    });
+    const SESSION_KEY='luya-page-session-v1';
+    let restoringPage=false, leavingSession=false;
+    function savePageSession() {
+        if(!currentUser || restoringPage || leavingSession) return;
+        try {
+            if(isExamActive) saveCurrentAnswer();
+            const screen=savingResult || isExamActive ? 'screen-exam' :
+                ['screen-admin','screen-student-select','screen-result'].find(id=>!document.getElementById(id).classList.contains('hidden'));
+            sessionStorage.setItem(SESSION_KEY,JSON.stringify({currentUser,currentUserHR,isAdmin,
+                selectedBook,selectedUnit,screen,scrollY:window.scrollY,
+                questions,sectionDefs,currentIndex,userAnswers,isCorrectionMode,activeRecord,activeUnit,
+                recordsHTML:isAdmin ? document.getElementById('records-list').innerHTML : '',
+                resultHTML:screen==='screen-result' ? document.getElementById('screen-result').innerHTML : ''}));
+        } catch(error) {console.error('Unable to preserve page:',error);}
+    }
+    window.addEventListener('beforeunload',savePageSession);
+    window.addEventListener('pagehide',savePageSession);
+    async function logoutUser() {
+        if(isExamActive && !confirm('Leave this exam and discard the saved answers?')) return;
+        leavingSession=true;
+        try { await signOut(auth); } catch(error) {leavingSession=false;alert('Unable to sign out. Please try again.');return;}
+        sessionStorage.removeItem(SESSION_KEY);
+        location.reload();
+    }
+    window.logoutUser=logoutUser;
+    async function restorePageSession() {
+        let saved;
+        try {saved=JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');} catch {return;}
+        if(!saved) return;
+        restoringPage=true;
+        try {
+            await authReady;
+            await auth.authStateReady();
+            if(saved.isAdmin) {
+                if(auth.currentUser?.email?.toLowerCase()!==ADMIN_EMAIL || !auth.currentUser.emailVerified) return;
+            } else {
+                if(!studentDirectory.some(s=>s.hr===saved.currentUserHR && s.name===saved.currentUser)) return;
+            }
+            currentUser=saved.currentUser;currentUserHR=saved.currentUserHR;isAdmin=saved.isAdmin===true;
+            selectedBook=saved.selectedBook;selectedUnit=saved.selectedUnit;
+            document.getElementById('user-display').classList.remove('hidden');
+            document.getElementById('user-role-icon').textContent=isAdmin ? '⚙️' : '👤';
+            document.getElementById('user-role-label').textContent=isAdmin ? 'Administrator' : `Student (${currentUserHR})`;
+            document.getElementById('current-user-name').textContent=isAdmin ? ADMIN_EMAIL : currentUser;
+            document.querySelector('.user-badge').classList.toggle('admin-mode',isAdmin);
+            const screen=isAdmin ? 'screen-admin' : ['screen-exam','screen-result'].includes(saved.screen) ? saved.screen : 'screen-student-select';
+            for(const id of ['screen-login','screen-admin','screen-student-select','screen-exam','screen-result'])
+                document.getElementById(id).classList.toggle('hidden',id!==screen);
+            const refresh=renderUnits();
+            if(isAdmin) document.getElementById('records-list').innerHTML=saved.recordsHTML || '';
+            if(screen==='screen-result') document.getElementById('screen-result').innerHTML=saved.resultHTML || '';
+            if(screen==='screen-exam') {
+                questions=saved.questions || [];sectionDefs=saved.sectionDefs || {};currentIndex=saved.currentIndex || 0;
+                userAnswers=saved.userAnswers || {};isCorrectionMode=saved.isCorrectionMode===true;
+                activeRecord=saved.activeRecord;activeUnit=saved.activeUnit;
+                isExamActive=true;
+                if(questions.length) renderQuestion();
+            }
+            requestAnimationFrame(()=>window.scrollTo(0,saved.scrollY || 0));
+            await refresh;
+            requestAnimationFrame(()=>window.scrollTo(0,saved.scrollY || 0));
+        } catch(error) {console.error('Page restore failed:',error);}
+        finally {restoringPage=false;}
+    }
 
     function resetLoginInput() {
         const inputEl = document.getElementById('input-username');
@@ -2252,7 +2295,7 @@
     }
 
     // Load Name.xlsx automatically after the page DOM is ready.
-    loadStudentDirectory();
+    loadStudentDirectory().then(restorePageSession);
 
     // 全局掛載以供 HTML 事件呼叫
     window.verifyLogin = verifyLogin;
