@@ -1046,13 +1046,14 @@
             const grid=row.querySelector('.unit-grid');
             for(let unit=1;unit<=30;unit++) {
                 const key=unitKey(book,unit), state=unitStates[key] || {};
-                if(!isAdmin && !classCanAccess(state,currentUserHR)) continue;
+                const permitted=isAdmin || classCanAccess(state,currentUserHR);
+                const displayOpen=state.isOpen === true && permitted;
                 const records=unitRecords.filter(r => (r.unitId===key || (r.book===book && r.unit===unit)) && isMine(r));
                 const pending=records.some(r => recordDetails(r).some(d => !d.isCorrect));
-                const icon=isAdmin || !unitRecordsLoaded ? '' : pending ? '❌' : records.length ? '👍' : isDue(state) ? '⛔' : '';
+                const icon=isAdmin || !unitRecordsLoaded || !permitted ? '' : pending ? '❌' : records.length ? '👍' : isDue(state) ? '⛔' : '';
                 const card=document.createElement('div');card.className='unit-card'+(book===selectedBook && unit===selectedUnit ? ' selected':'');
-                card.innerHTML=`<div class="unit-heading"><button class="unit-name ${state.isOpen ? 'open':''}">${icon}Unit${String(unit).padStart(2,'0')}</button>${isAdmin ? `<button class="unit-switch" role="switch" aria-label="${unitLabel(book,unit)}" aria-checked="${state.isOpen===true}">${state.isOpen ? 'On':'Off'}</button>` : ''}</div><div class="unit-date"></div>`;
-                card.querySelector('.unit-date').textContent=state.isOpen && typeof state.openedDate === 'string' ? state.openedDate.replaceAll('-','.') : '';
+                card.innerHTML=`<div class="unit-heading"><button class="unit-name ${displayOpen ? 'open':''}">${icon}Unit${String(unit).padStart(2,'0')}</button>${isAdmin ? `<button class="unit-switch" role="switch" aria-label="${unitLabel(book,unit)}" aria-checked="${state.isOpen===true}">${state.isOpen ? 'On':'Off'}</button>` : ''}</div><div class="unit-date"></div>`;
+                card.querySelector('.unit-date').textContent=displayOpen && typeof state.openedDate === 'string' ? state.openedDate.replaceAll('-','.') : '';
                 card.querySelector('.unit-name').onclick=()=> {selectedBook=book;selectedUnit=unit;drawUnits();if(isAdmin){void loadAdminStudentRecords();}else checkStudentUnitExam();};
                 if (isAdmin) card.querySelector('.unit-switch').onclick=e=>toggleUnit(book,unit,e.currentTarget);
                 grid.appendChild(card);
