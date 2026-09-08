@@ -515,10 +515,10 @@
 
     <!-- Student / Admin Badge -->
     <div id="user-display" class="user-badge-wrapper hidden">
-        <button class="btn btn-inline btn-secondary" onclick="logoutUser()" style="margin-bottom:10px;">Sign out / Switch User</button>
         <div class="user-badge">
             <span id="user-role-icon">👤</span> <span id="user-role-label">Student</span>: <span id="current-user-name"></span>
         </div>
+        <div style="margin-top:10px;"><button class="btn btn-inline btn-secondary" onclick="logoutUser()">Sign out</button></div>
     </div>
 
     <!-- Step 0: Login -->
@@ -632,6 +632,7 @@
 <div id="modal-unit-classes" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="unit-classes-title">
     <div class="modal-card">
         <h3 id="unit-classes-title" class="modal-title"></h3>
+        <button id="unit-class-off" class="btn btn-inline btn-danger hidden" style="margin-bottom:12px;" onclick="confirmUnitClasses(false)">Off</button>
         <p style="margin-bottom:12px;">Select classes eligible for this exam.</p>
         <div id="unit-class-options" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:280px;overflow-y:auto;"></div>
         <div class="modal-btn-row">
@@ -1010,16 +1011,17 @@
         pendingUnitClasses=null;
         document.getElementById('modal-unit-classes').classList.add('hidden');
     }
-    async function confirmUnitClasses() {
+    async function confirmUnitClasses(keepOpen=true) {
         if(!isAdmin || !pendingUnitClasses || savingUnitClasses) return;
         const classes=getSelectedLeaderboardClasses('unit-class-options');
-        if(!classes.length) {alert('Please select at least one class.');return;}
+        if(keepOpen && !classes.length) {alert('Please select at least one class.');return;}
         const {book,unit}=pendingUnitClasses;
         savingUnitClasses=true;
         document.getElementById('unit-class-confirm').disabled=true;
         document.getElementById('unit-class-cancel').disabled=true;
+        document.getElementById('unit-class-off').disabled=true;
         try {
-            const saved=await persistUnitState(book,unit,{disabled:false},classes);
+            const saved=await persistUnitState(book,unit,{disabled:false},classes,keepOpen);
             if(saved) {
                 pendingUnitClasses=null;
                 document.getElementById('modal-unit-classes').classList.add('hidden');
@@ -1028,6 +1030,7 @@
             savingUnitClasses=false;
             document.getElementById('unit-class-confirm').disabled=false;
             document.getElementById('unit-class-cancel').disabled=false;
+            document.getElementById('unit-class-off').disabled=false;
         }
     }
     window.closeUnitClasses=closeUnitClasses;
@@ -1106,22 +1109,28 @@
     }
     async function toggleUnit(book,unit,button) {
         if(!isAdmin || button.disabled || savingUnitClasses) return;
-        if(!unitStates[unitKey(book,unit)]?.isOpen) {
+        const state=unitStates[unitKey(book,unit)] || {};
+        {
             if(!populateLeaderboardClassOptions('unit-class-options')) return;
+            const boxes=[...document.querySelectorAll('#unit-class-options input[name="leaderboard-class"]')];
+            boxes.forEach(box=>{box.checked=(state.allowedClasses || []).includes(box.value);});
+            document.getElementById('unit-class-options-class-all').checked=boxes.length>0 && boxes.every(box=>box.checked);
             pendingUnitClasses={book,unit};
             document.getElementById('unit-classes-title').textContent=`📚 ${unitLabel(book,unit)}`;
+            document.getElementById('unit-class-off').classList.toggle('hidden',!state.isOpen);
+            document.getElementById('unit-class-confirm').textContent=state.isOpen ? 'Save Classes' : 'Open Unit';
             document.getElementById('modal-unit-classes').classList.remove('hidden');
             document.getElementById('unit-class-confirm').focus();
             return;
         }
-        await persistUnitState(book,unit,button);
     }
-    async function persistUnitState(book,unit,button,allowedClasses=[]) {
+    async function persistUnitState(book,unit,button,allowedClasses=[],desiredOpen=null) {
         if(!isAdmin || button.disabled) return;
         button.disabled=true;
-        const key=unitKey(book,unit), opening=!unitStates[key]?.isOpen;
+        const key=unitKey(book,unit), wasOpen=unitStates[key]?.isOpen===true;
+        const opening=desiredOpen === null ? !wasOpen : desiredOpen;
         if(opening && !allowedClasses.length) {button.disabled=false;return false;}
-        if(opening) {
+        if(opening && !wasOpen) {
             try { await loadUnitExam(book,unit); }
             catch(error) {
                 alert(`❌ 無法讀取或解析 index.html 同目錄的 ${key}.xlsx。\n${error.message}\n請確認檔名大小寫與檔案內容。單元未開啟。`);
@@ -1130,12 +1139,12 @@
             }
         }
         try {
-            const state={book,unit,isOpen:opening,allowedClasses:opening ? allowedClasses : (unitStates[key]?.allowedClasses || []),openedDate:opening ? getFormattedDate() : (unitStates[key]?.openedDate || ''),updatedAt:new Date().toISOString()};
+            const state={book,unit,isOpen:opening,allowedClasses:opening ? allowedClasses : (unitStates[key]?.allowedClasses || []),openedDate:opening && !wasOpen ? getFormattedDate() : (unitStates[key]?.openedDate || ''),updatedAt:new Date().toISOString()};
             await setDoc(doc(db,'examUnits',key),state);
             unitStates[key]=state; drawUnits();
             return true;
         } catch(error) {
-            const fileStatus=opening ? `✅ 已成功讀取並驗證同目錄的 ${key}.xlsx。\n` : '';
+            const fileStatus=opening && !wasOpen ? `✅ 已成功讀取並驗證同目錄的 ${key}.xlsx。\n` : '';
             alert(`${fileStatus}❌ 無法將單元開關狀態儲存至 Firestore：examUnits/${key}。\n${error.message}\n請檢查 Firebase 身分驗證與 Firestore Security Rules 是否允許管理員寫入此文件。狀態尚未變更，学生端無法取得本次設定。`);
             button.disabled=false;
         }
