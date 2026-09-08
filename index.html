@@ -208,6 +208,7 @@
         .unit-card.selected { border:2px solid #4f46e5; background:#eef2ff; }
         .unit-name { border:0; background:none; color:#64748b; font-weight:800; font-size:1rem; cursor:pointer; }
         .unit-name.open { color:#2563eb; }
+        #student-units .unit-name.open { color:#16a34a; }
         .unit-date { color:#16a34a; min-height:23px; font-size:.8rem; padding-top:4px; }
         .unit-switch { border:1px solid #cbd5e1; border-radius:20px; padding:3px 10px; background:#e2e8f0; color:#475569; cursor:pointer; }
         .unit-switch[aria-checked="true"] { background:#dcfce7; color:#166534; border-color:#86efac; }
@@ -521,6 +522,8 @@
             <input type="text" id="input-username" class="input-text" placeholder="e.g., Peter Pan (Full English Name)" onkeypress="if(event.key==='Enter') verifyLogin()" onfocus="resetLoginInput()">
         </div>
         <button id="btn-login" class="btn btn-inline" onclick="verifyLogin()" disabled>Loading student list...</button>
+        <button id="btn-google-admin" class="btn btn-inline btn-secondary" onclick="loginGoogleAdmin()" style="margin-top:16px;">Administrator · Google 登入</button>
+        <p id="admin-login-message" class="status-msg" aria-live="polite"></p>
     </div>
 
     <!-- Step 1-A: Admin Portal -->
@@ -673,6 +676,7 @@
 <!-- Firebase & Application Script -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, setPersistence, inMemoryPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -687,6 +691,42 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const auth = getAuth(app);
+    const ADMIN_EMAIL = 'huang@luya.academy';
+    const authReady = setPersistence(auth, inMemoryPersistence);
+    authReady.catch(error => console.error('Authentication initialization:', error));
+    async function loginGoogleAdmin() {
+        const button=document.getElementById('btn-google-admin');
+        const message=document.getElementById('admin-login-message');
+        if(button.disabled) return;
+        button.disabled=true;
+        message.textContent='正在開啟 Google 登入…';
+        try {
+            await authReady;
+            const provider=new GoogleAuthProvider();
+            provider.setCustomParameters({prompt:'select_account',login_hint:ADMIN_EMAIL});
+            const result=await signInWithPopup(auth,provider);
+            if(!result.user.emailVerified || result.user.email?.toLowerCase()!==ADMIN_EMAIL) {
+                await signOut(auth);
+                throw new Error(`僅限 ${ADMIN_EMAIL} 管理員帳號登入。`);
+            }
+            isAdmin=true;currentUser='Administrator';currentUserHR='';
+            document.getElementById('user-role-icon').innerText='⚙️';
+            document.getElementById('user-role-label').innerText='Administrator';
+            document.getElementById('current-user-name').innerText=ADMIN_EMAIL;
+            document.querySelector('.user-badge').classList.add('admin-mode');
+            document.getElementById('user-display').classList.remove('hidden');
+            document.getElementById('screen-login').classList.add('hidden');
+            document.getElementById('screen-admin').classList.remove('hidden');
+            message.textContent='';
+            await renderUnits();
+        } catch(error) {
+            message.textContent=error.code==='auth/unauthorized-domain'
+                ? '請在 Firebase Authentication → 設定 → 已授權網域，加入 luyahuang.github.io。'
+                : `登入未完成：${error.message}。若彈出視窗遭封鎖，請允許本站彈出視窗後重試。`;
+        } finally {button.disabled=false;}
+    }
+    window.loginGoogleAdmin=loginGoogleAdmin;
 
     const DEFAULT_PLACEHOLDER = "e.g., Peter Pan (Full English Name)";
 
@@ -860,21 +900,7 @@
         const userBadgeEl = document.querySelector('.user-badge');
 
         if (normalizedInput === 'administrator') {
-            isAdmin = true;
-            currentUser = "Administrator";
-            currentUserHR = '';
-            
-            document.getElementById('user-role-icon').innerText = "⚙️";
-            document.getElementById('user-role-label').innerText = "Role";
-            document.getElementById('current-user-name').innerText = "Admin";
-            
-            if (userBadgeEl) userBadgeEl.classList.add('admin-mode');
-            document.getElementById('user-display').classList.remove('hidden');
-
-            document.getElementById('screen-login').classList.add('hidden');
-            document.getElementById('screen-admin').classList.remove('hidden');
-            
-            await renderUnits();
+            await loginGoogleAdmin();
             return;
         }
 
@@ -974,10 +1000,10 @@
                 const pending=records.some(r => (r.details || []).some(d => !d.isCorrect));
                 const icon=isAdmin || !unitRecordsLoaded ? '' : pending ? '❌' : records.length ? '👍' : isDue(state) ? '⛔' : '';
                 const card=document.createElement('div');card.className='unit-card'+(book===selectedBook && unit===selectedUnit ? ' selected':'');
-                card.innerHTML=`<button class="unit-name ${state.isOpen ? 'open':''}">${icon}Unit${String(unit).padStart(2,'0')}</button><div class="unit-date"></div><button class="unit-switch" role="switch" aria-label="${unitLabel(book,unit)}" aria-checked="${state.isOpen===true}" ${!isAdmin ? 'disabled':''}>${state.isOpen ? 'On':'Off'}</button>`;
+                card.innerHTML=`<button class="unit-name ${state.isOpen ? 'open':''}">${icon}Unit${String(unit).padStart(2,'0')}</button><div class="unit-date"></div>${isAdmin ? `<button class="unit-switch" role="switch" aria-label="${unitLabel(book,unit)}" aria-checked="${state.isOpen===true}">${state.isOpen ? 'On':'Off'}</button>` : ''}`;
                 card.querySelector('.unit-date').textContent=state.isOpen ? (state.openedDate || '').replaceAll('-','.') : '';
                 card.querySelector('.unit-name').onclick=()=> {selectedBook=book;selectedUnit=unit;drawUnits();if(isAdmin){document.getElementById('admin-selected-unit').textContent=unitLabel(book,unit);document.getElementById('records-list').textContent='Click Unit Records to view this unit.';}else checkStudentUnitExam();};
-                card.querySelector('.unit-switch').onclick=e=>toggleUnit(book,unit,e.currentTarget);
+                if (isAdmin) card.querySelector('.unit-switch').onclick=e=>toggleUnit(book,unit,e.currentTarget);
                 grid.appendChild(card);
             }
             host.appendChild(row);
