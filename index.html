@@ -537,6 +537,17 @@
         }
 
         .hidden { display: none !important; }
+        .admin-portal-header { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; margin-bottom:14px; }
+        .admin-portal-header h2 { flex:1; }
+        .admin-database-tools { width:480px; max-width:100%; margin-left:auto; }
+        .admin-database-buttons { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; }
+        .admin-database-buttons .btn { margin:0; }
+        .database-warning { margin-top:10px; padding:10px 12px; border:1px solid #fcd34d; border-radius:8px; background:#fffbeb; color:#92400e; font-size:0.82rem; line-height:1.5; }
+        .admin-database-tools .status-msg:empty { display:none; }
+        @media (max-width:760px) {
+            .admin-portal-header { flex-direction:column; }
+            .admin-database-tools { width:100%; }
+        }
     </style>
 </head>
 <body>
@@ -573,7 +584,18 @@
 
     <!-- Step 1-A: Admin Portal -->
     <div id="screen-admin" class="hidden">
-        <h2 style="margin-bottom: 14px; color: var(--admin-color); font-size: 1.35rem;">⚙️ Administrator Exam Manager</h2>
+        <div class="admin-portal-header">
+            <h2 style="color: var(--admin-color); font-size: 1.35rem;">⚙️ Administrator Exam Manager</h2>
+            <div class="admin-database-tools">
+                <div class="admin-database-buttons">
+                    <button id="btn-backup-database" class="btn btn-inline btn-secondary" onclick="backupDatabase()">💾 Backup Database</button>
+                    <button id="btn-restore-database" class="btn btn-inline btn-danger" onclick="document.getElementById('restore-file').click()">↩ Restore Database</button>
+                </div>
+                <input id="restore-file" type="file" accept=".json,application/json" hidden onchange="restoreDatabase(this)">
+                <p class="database-warning"><strong>Warning:</strong> Restoring replaces all current exam records and unit settings with the selected backup, including deleting data not in that backup. Pause all testing during backup or restore, and save a current backup before restoring.</p>
+                <p id="backup-status" class="status-msg" aria-live="polite"></p>
+            </div>
+        </div>
         
         <p id="admin-sync-status" class="status-msg" aria-live="polite"></p>
         <div id="admin-units"></div>
@@ -581,12 +603,7 @@
         <!-- Admin View Records -->
         <div class="records-section">
             <h3 style="color: var(--text-main); font-size: 1.15rem; margin-top: 4px;">📊 Student Exam & Score Analytics</h3>
-            <div style="margin-top:12px;">
-                <button id="btn-backup-database" class="btn btn-inline btn-secondary" onclick="backupDatabase()">💾 Backup Database</button>
-                <button id="btn-restore-database" class="btn btn-inline btn-danger" onclick="document.getElementById('restore-file').click()">↩ Restore Database</button>
-                <input id="restore-file" type="file" accept=".json,application/json" hidden onchange="restoreDatabase(this)">
-                <p id="backup-status" class="status-msg" aria-live="polite"></p>
-            </div>
+
 
             <div class="admin-btn-grid">
                 <button class="btn btn-blue-grad admin-action-btn" onclick="loadAdminStudentRecords()">📚 Unit Records</button>
