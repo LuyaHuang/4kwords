@@ -224,6 +224,7 @@
         .report-heading h3 { margin:0 !important; flex:1; }
         .print-report-button { flex:none; border:1px solid var(--border-color); background:#fff; border-radius:8px; padding:8px 12px; font-size:1.2rem; cursor:pointer; }
         #report-print-area { display:none; }
+        .print-record-summary { display:none; }
         @media print {
             @page { size:A4 portrait; margin:12mm; }
             body.printing-report { display:block; padding:0; background:white; }
@@ -232,11 +233,16 @@
             #report-print-area * { color:#111 !important; background:white !important; box-shadow:none !important; text-shadow:none !important; }
             #report-print-area > div { border:0 !important; padding:0 !important; }
             #report-print-area table { width:100% !important; font-size:10pt !important; }
+            #report-print-area .print-record-summary { display:table !important; border-collapse:collapse; margin:12px 0 20px; }
+            #report-print-area .print-record-summary th, #report-print-area .print-record-summary td { border:1px solid #999; text-align:left; }
             #report-print-area thead { display:table-header-group; }
             #report-print-area tr { break-inside:avoid; }
             #report-print-area td, #report-print-area th { padding:6px !important; overflow-wrap:anywhere; }
             #report-print-area h3 { font-size:14pt !important; margin-bottom:12px !important; }
-            #report-print-area .student-record-item, #report-print-area .result-card { break-inside:avoid; }
+            #report-print-area .student-record-item { break-inside:auto; }
+            #report-print-area .result-card { break-inside:avoid; }
+            #report-print-area .record-summary { break-after:avoid; }
+            #report-print-area { overflow:visible !important; height:auto !important; }
             #report-print-area .record-summary { gap:6px; }
         }
         @media(max-width:760px) { .container {padding:18px;} .book-row {grid-template-columns:90px minmax(0,1fr);gap:10px;padding:10px;} .unit-grid {grid-template-columns:repeat(3,minmax(0,1fr));} .header-container {flex-wrap:wrap;gap:12px;} .header-text h1 {font-size:1.6rem;} .admin-btn-grid {grid-template-columns:repeat(2,minmax(0,1fr));} }
@@ -1218,7 +1224,7 @@
         let records;
         try { records = await getResultsFromCloud(targetUnit); } catch(error) { container.textContent="❌ Unable to load records."; return; }
         if(targetUnit !== unitKey(selectedBook,selectedUnit)) return;
-        container.innerHTML = heading;
+        container.innerHTML = heading + printRecordSummary(records);
 
         if (!records || records.length === 0) {
             container.innerHTML = heading + `<p style="color: var(--text-muted); font-size: 0.9rem;">No students have completed the exam for ${unitLabel(selectedBook,selectedUnit)}.</p>`;
@@ -1694,7 +1700,7 @@
                 `;
             }).join('');
 
-            container.innerHTML = summaryHtml + recordsHtml;
+            container.innerHTML = summaryHtml + printRecordSummary(matchedRecords) + recordsHtml;
         } catch (error) {
             console.error("Score History Search Error:", error);
             container.innerHTML = '<p style="color: var(--danger-color); font-size: 0.9rem;">❌ Failed to load score history. Please try again.</p>';
@@ -2344,6 +2350,15 @@
 
     function reportPrintButton() {
         return '<button class="print-report-button" aria-label="Print report as PDF" title="Print / Save as PDF" onclick="printTrackReport()">🖨️</button>';
+    }
+    function printRecordSummary(records) {
+        const escape=value=>String(value ?? '').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+        const rows=records.map(rec=>{
+            const details=recordDetails(rec);
+            const status=details.length ? (details.some(d=>!d.isCorrect) ? 'Needs Correction' : 'Complete') : '—';
+            return `<tr><td>${escape(getStudentHR(rec.studentName,rec.studentHR))}</td><td>${escape(rec.studentName)}</td><td>${escape(rec.date)}</td><td>${escape(recordLabel(rec))}</td><td>${escape(rec.score)} / ${escape(rec.totalPossible)}</td><td>${status}</td></tr>`;
+        }).join('');
+        return `<table class="print-record-summary"><thead><tr><th>Class</th><th>Student</th><th>Exam Date</th><th>Book / Unit</th><th>Initial Score</th><th>Correction</th></tr></thead><tbody>${rows}</tbody></table>`;
     }
     function printTrackReport(title) {
         if(!isAdmin || document.getElementById('report-print-area')) return;
