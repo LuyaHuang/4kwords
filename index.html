@@ -1700,7 +1700,7 @@
                 `;
             }).join('');
 
-            container.innerHTML = summaryHtml + printRecordSummary(matchedRecords) + recordsHtml;
+            container.innerHTML = summaryHtml + printRecordSummary(matchedRecords, true) + recordsHtml;
         } catch (error) {
             console.error("Score History Search Error:", error);
             container.innerHTML = '<p style="color: var(--danger-color); font-size: 0.9rem;">❌ Failed to load score history. Please try again.</p>';
@@ -2351,14 +2351,16 @@
     function reportPrintButton() {
         return '<button class="print-report-button" aria-label="Print report as PDF" title="Print / Save as PDF" onclick="printTrackReport()">🖨️</button>';
     }
-    function printRecordSummary(records) {
+    function printRecordSummary(records, historyOnly=false) {
         const escape=value=>String(value ?? '').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
         const rows=records.map(rec=>{
+            if(historyOnly) return `<tr><td>${escape(rec.date)}</td><td>${escape(recordLabel(rec))}</td><td>${escape(rec.score)} / ${escape(rec.totalPossible)}</td></tr>`;
             const details=recordDetails(rec);
             const status=details.length ? (details.some(d=>!d.isCorrect) ? 'Needs Correction' : 'Complete') : '—';
             return `<tr><td>${escape(getStudentHR(rec.studentName,rec.studentHR))}</td><td>${escape(rec.studentName)}</td><td>${escape(rec.date)}</td><td>${escape(recordLabel(rec))}</td><td>${escape(rec.score)} / ${escape(rec.totalPossible)}</td><td>${status}</td></tr>`;
         }).join('');
-        return `<table class="print-record-summary"><thead><tr><th>Class</th><th>Student</th><th>Exam Date</th><th>Book / Unit</th><th>Initial Score</th><th>Correction</th></tr></thead><tbody>${rows}</tbody></table>`;
+        const columns=historyOnly ? '<th>Exam Date</th><th>Book / Unit</th><th>Initial Score</th>' : '<th>Class</th><th>Student</th><th>Exam Date</th><th>Book / Unit</th><th>Initial Score</th><th>Correction</th>';
+        return `<table class="print-record-summary"><thead><tr>${columns}</tr></thead><tbody>${rows}</tbody></table>`;
     }
     function printTrackReport(title) {
         if(!isAdmin || document.getElementById('report-print-area')) return;
@@ -2369,6 +2371,11 @@
         area.id='report-print-area';
         const copy=source.cloneNode(true);
         copy.removeAttribute('id');
+        // These reports already have a complete printable summary table.
+        // Exclude the on-screen cards and their question-by-question details.
+        if(copy.querySelector('.print-record-summary')) {
+            copy.querySelectorAll('.student-record-item').forEach(item=>item.remove());
+        }
         copy.querySelectorAll('button').forEach(button=>button.remove());
         copy.querySelectorAll('.hidden').forEach(item=>item.classList.remove('hidden'));
         area.appendChild(copy);
