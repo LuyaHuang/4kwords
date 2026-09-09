@@ -748,7 +748,8 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
-    const ADMIN_EMAIL = 'huang@luya.academy';
+    const ADMIN_EMAILS = ['huang@luya.academy', 'owenchin@luya.academy'];
+    const isAllowedAdmin = user => user?.emailVerified === true && ADMIN_EMAILS.includes(user.email?.toLowerCase());
     const authReady = setPersistence(auth, browserSessionPersistence);
     authReady.catch(error => console.error('Authentication initialization:', error));
     async function loginGoogleAdmin() {
@@ -760,18 +761,18 @@
         try {
             await authReady;
             const provider=new GoogleAuthProvider();
-            provider.setCustomParameters({prompt:'select_account',login_hint:ADMIN_EMAIL});
+            provider.setCustomParameters({prompt:'select_account'});
             const result=await signInWithPopup(auth,provider);
-            if(!result.user.emailVerified || result.user.email?.toLowerCase()!==ADMIN_EMAIL) {
+            if(!isAllowedAdmin(result.user)) {
                 await signOut(auth);
-                throw new Error(`僅限 ${ADMIN_EMAIL} 管理員帳號登入。`);
+                throw new Error('此 Google 帳號未被授權為題庫管理員。');
             }
             isAdmin=true;currentUser='Administrator';currentUserHR='';
             selectedBook=null;selectedUnit=null;
             document.getElementById('records-list').textContent='Please select a unit to view its records.';
             document.getElementById('user-role-icon').innerText='⚙️';
             document.getElementById('user-role-label').innerText='Administrator';
-            document.getElementById('current-user-name').innerText=ADMIN_EMAIL;
+            document.getElementById('current-user-name').innerText=result.user.email;
             document.querySelector('.user-badge').classList.add('admin-mode');
             document.getElementById('user-display').classList.remove('hidden');
             document.getElementById('screen-login').classList.add('hidden');
@@ -927,7 +928,7 @@
             await authReady;
             await auth.authStateReady();
             if(saved.isAdmin) {
-                if(auth.currentUser?.email?.toLowerCase()!==ADMIN_EMAIL || !auth.currentUser.emailVerified) return;
+                if(!isAllowedAdmin(auth.currentUser)) return;
             } else {
                 if(!studentDirectory.some(s=>s.hr===saved.currentUserHR && s.name===saved.currentUser)) return;
             }
@@ -936,7 +937,7 @@
             document.getElementById('user-display').classList.remove('hidden');
             document.getElementById('user-role-icon').textContent=isAdmin ? '⚙️' : '👤';
             document.getElementById('user-role-label').textContent=isAdmin ? 'Administrator' : `Student (${currentUserHR})`;
-            document.getElementById('current-user-name').textContent=isAdmin ? ADMIN_EMAIL : currentUser;
+            document.getElementById('current-user-name').textContent=isAdmin ? auth.currentUser.email : currentUser;
             document.querySelector('.user-badge').classList.toggle('admin-mode',isAdmin);
             const screen=saved.screen==='screen-login' ? 'screen-login' : isAdmin ? 'screen-admin' : ['screen-exam','screen-result'].includes(saved.screen) ? saved.screen : 'screen-student-select';
             for(const id of ['screen-login','screen-admin','screen-student-select','screen-exam','screen-result'])
