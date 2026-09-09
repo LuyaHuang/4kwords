@@ -233,8 +233,13 @@
             #report-print-area * { color:#111 !important; background:white !important; box-shadow:none !important; text-shadow:none !important; }
             #report-print-area > div { border:0 !important; padding:0 !important; }
             #report-print-area table { width:100% !important; font-size:10pt !important; }
-            #report-print-area .print-record-summary { display:table !important; border-collapse:collapse; margin:12px 0 20px; }
-            #report-print-area .print-record-summary th, #report-print-area .print-record-summary td { border:1px solid #999; text-align:left; }
+            #report-print-area .print-record-summary { display:table !important; border-collapse:collapse; margin:12px 0 20px; text-align:center; }
+            #report-print-area .print-record-summary thead tr { border-bottom:2px solid #fecaca; }
+            #report-print-area .print-record-summary tbody tr { border-bottom:1px solid #e2e8f0; }
+            #report-print-area .print-record-summary th, #report-print-area .print-record-summary td { border:0; text-align:center; padding:10px 8px !important; line-height:1.5; }
+            #report-print-area .print-record-summary th { font-weight:700; }
+            #report-print-area .print-record-summary td:first-child, #report-print-area .print-record-summary th:first-child { text-align:left; }
+            #report-print-area .print-record-summary .summary-student, #report-print-area .print-record-summary .summary-score { font-weight:700; }
             #report-print-area thead { display:table-header-group; }
             #report-print-area tr { break-inside:avoid; }
             #report-print-area td, #report-print-area th { padding:6px !important; overflow-wrap:anywhere; }
@@ -2354,10 +2359,10 @@
     function printRecordSummary(records, historyOnly=false) {
         const escape=value=>String(value ?? '').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
         const rows=records.map(rec=>{
-            if(historyOnly) return `<tr><td>${escape(rec.date)}</td><td>${escape(recordLabel(rec))}</td><td>${escape(rec.score)} / ${escape(rec.totalPossible)}</td></tr>`;
+            if(historyOnly) return `<tr><td>${escape(rec.date)}</td><td>${escape(recordLabel(rec))}</td><td class="summary-score">${escape(rec.score)} / ${escape(rec.totalPossible)}</td></tr>`;
             const details=recordDetails(rec);
             const status=details.length ? (details.some(d=>!d.isCorrect) ? 'Needs Correction' : 'Complete') : '—';
-            return `<tr><td>${escape(getStudentHR(rec.studentName,rec.studentHR))}</td><td>${escape(rec.studentName)}</td><td>${escape(rec.date)}</td><td>${escape(recordLabel(rec))}</td><td>${escape(rec.score)} / ${escape(rec.totalPossible)}</td><td>${status}</td></tr>`;
+            return `<tr><td>${escape(getStudentHR(rec.studentName,rec.studentHR))}</td><td class="summary-student">${escape(rec.studentName)}</td><td>${escape(rec.date)}</td><td>${escape(recordLabel(rec))}</td><td class="summary-score">${escape(rec.score)} / ${escape(rec.totalPossible)}</td><td>${status}</td></tr>`;
         }).join('');
         const columns=historyOnly ? '<th>Exam Date</th><th>Book / Unit</th><th>Initial Score</th>' : '<th>Class</th><th>Student</th><th>Exam Date</th><th>Book / Unit</th><th>Initial Score</th><th>Correction</th>';
         return `<table class="print-record-summary"><thead><tr>${columns}</tr></thead><tbody>${rows}</tbody></table>`;
