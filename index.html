@@ -1838,8 +1838,21 @@
         container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.9rem;">⏳ Calculating ranking data from ${startStr} to ${endStr}...</p>`;
 
         try {
-            const querySnapshot = await getDocs(collection(db, "records"));
+            const [querySnapshot, unitSnapshot] = await Promise.all([
+                getDocs(collection(db, 'records')), getDocs(collection(db, 'examUnits'))
+            ]);
             let studentScores = {};
+            const rankingUnits = new Set();
+            studentDirectory.filter(student=>selectedClasses.includes(student.hr)).forEach(student=>{
+                studentScores[`${student.hr}__${normalizeLoginValue(student.name)}`] = {
+                    name:student.name,hr:student.hr,totalScore:0,count:0,unitScores:{}
+                };
+            });
+            unitSnapshot.forEach(unitDoc=>{
+                const unit=unitDoc.data();
+                if(unit.book && unit.unit && isDue(unit) && unit.openedDate>=startStr && unit.openedDate<=endStr
+                    && selectedClasses.some(hr=>classCanAccess(unit,hr))) rankingUnits.add(unitLabel(unit.book,unit.unit));
+            });
 
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
@@ -1856,6 +1869,7 @@
                     studentScores[studentKey].totalScore += score;
                     studentScores[studentKey].count += 1;
                     const scoreKey=data.book && data.unit ? unitLabel(data.book,data.unit) : `Date ${data.date}`;
+                    rankingUnits.add(scoreKey);
                     studentScores[studentKey].unitScores[scoreKey]=(studentScores[studentKey].unitScores[scoreKey] || 0)+score;
                 }
             });
@@ -1873,16 +1887,16 @@
                 };
             });
 
-            renderRangeLeaderboardUI(startStr, endStr, leaderboard, titleText);
+            renderRangeLeaderboardUI(startStr, endStr, leaderboard, titleText, [...rankingUnits]);
         } catch (error) {
             console.error("Leaderboard Error:", error);
             container.innerHTML = '<p style="color: var(--danger-color); font-size: 0.9rem;">❌ Failed to load leaderboard. Please try again.</p>';
         }
     }
 
-    function renderRangeLeaderboardUI(startStr, endStr, leaderboard, titleText) {
+    function renderRangeLeaderboardUI(startStr, endStr, leaderboard, titleText, rankingUnits=[]) {
         const container = document.getElementById('records-list');
-        const exportData=encodeURIComponent(JSON.stringify({startStr,endStr,titleText,leaderboard}));
+        const exportData=encodeURIComponent(JSON.stringify({startStr,endStr,titleText,leaderboard,rankingUnits}));
         
         let tableHtml = `
             <div style="background:#fff; padding:16px; border-radius:10px; border:1px solid #e2e8f0; text-align:center;">
@@ -2385,7 +2399,7 @@
         workbook.creator='LUYA';
         workbook.calcProperties.fullCalcOnLoad=true;
         const sheet=workbook.addWorksheet('Sheet1');
-        const units=[...new Set(data.leaderboard.flatMap(row=>Object.keys(row.unitScores || {})))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+        const units=[...new Set([...(data.rankingUnits || []),...data.leaderboard.flatMap(row=>Object.keys(row.unitScores || {}))])].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
         const books=new Set(units.map(unit=>unit.match(/^Book(\d+) /)?.[1]).filter(Boolean));
         const labels=units.map(unit=>books.size===1 ? unit.replace(/^Book\d+ \/ Unit/,'Unit ') : unit);
         sheet.addRow(['Homeroom','English Name',...labels,'Total','Rank']);
@@ -2393,7 +2407,7 @@
         const totalColumn=units.length+3, rankColumn=totalColumn+1;
         const totalLetter=sheet.getColumn(totalColumn).letter;
         data.leaderboard.forEach((entry,index)=>{
-            const values=units.map(unit=>Object.prototype.hasOwnProperty.call(entry.unitScores || {},unit) ? entry.unitScores[unit] : null);
+            const values=units.map(unit=>Object.prototype.hasOwnProperty.call(entry.unitScores || {},unit) ? entry.unitScores[unit] : '--');
             const row=sheet.addRow([entry.hr,entry.name,...values,entry.totalScore,entry.rank]);
             const rowNumber=index+2;
             row.getCell(totalColumn).value={formula:units.length ? `SUM(C${rowNumber}:${sheet.getColumn(totalColumn-1).letter}${rowNumber})` : '0',result:entry.totalScore};
