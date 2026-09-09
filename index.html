@@ -53,10 +53,11 @@
 
         /* Header Layout */
         .header-container {
-            display: flex;
+            display: grid;
+            grid-template-columns:220px minmax(0,1fr) 220px;
             align-items: center;
             justify-content: flex-start;
-            gap: 28px;
+            gap: 0;
             margin-bottom: 24px;
             flex-wrap: nowrap;
         }
@@ -77,13 +78,15 @@
 
         /* Header Text */
         .header-text { 
-            text-align: left; 
-            padding-left: 10px;
+            text-align: center;
+            grid-column:2;
+            min-width:0;
+            padding-left:0;
         }
 
         .header-text h1 { 
             color: var(--primary-color); 
-            font-size: 2.1rem; 
+            font-size: 2.4rem;
             font-weight: 800;
             line-height: 1.25; 
             margin-bottom: 6px; 
@@ -94,6 +97,11 @@
             color: var(--text-muted); 
             font-size: 1.02rem; 
             font-weight: 500;
+        }
+        @media(max-width:1000px) {
+            .header-container { grid-template-columns:1fr; row-gap:14px; }
+            .header-text { grid-column:1; width:100%; }
+            .brand-logo { grid-column:1; justify-self:start; }
         }
 
         /* Student Badge Wrapper */
