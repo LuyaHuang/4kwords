@@ -581,6 +581,12 @@
         <!-- Admin View Records -->
         <div class="records-section">
             <h3 style="color: var(--text-main); font-size: 1.15rem; margin-top: 4px;">📊 Student Exam & Score Analytics</h3>
+            <div style="margin-top:12px;">
+                <button id="btn-backup-database" class="btn btn-inline btn-secondary" onclick="backupDatabase()">💾 Backup Database</button>
+                <button id="btn-restore-database" class="btn btn-inline btn-danger" onclick="document.getElementById('restore-file').click()">↩ Restore Database</button>
+                <input id="restore-file" type="file" accept=".json,application/json" hidden onchange="restoreDatabase(this)">
+                <p id="backup-status" class="status-msg" aria-live="polite"></p>
+            </div>
 
             <div class="admin-btn-grid">
                 <button class="btn btn-blue-grad admin-action-btn" onclick="loadAdminStudentRecords()">📚 Unit Records</button>
@@ -733,7 +739,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, getDocs, getDocsFromServer, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAumfeQtxKx6m-z853Hkb3Z4pU_vWpADG8",
@@ -2237,15 +2243,15 @@
         questions.forEach((q, idx) => {
             let ans = userAnswers[q.id];
             if (ans === undefined || ans === null || String(ans).trim() === '') {
-                unansweredNums.push(`第 ${idx + 1} 題`);
+                unansweredNums.push(`${idx + 1}`);
             }
         });
 
         let confirmMsg = "";
         if (unansweredNums.length > 0) {
-            confirmMsg = `⚠️ 提醒：您還有 ${unansweredNums.length} 個題目尚未作答！\n未作答題號：${unansweredNums.join('、')}\n\n確定真的要交卷嗎？`;
+            confirmMsg = `⚠️ You have ${unansweredNums.length} unanswered ${unansweredNums.length === 1 ? 'question' : 'questions'}.\nUnanswered questions: ${unansweredNums.join(', ')}\n\nAre you sure you want to submit your test?`;
         } else {
-            confirmMsg = "✅ 所有題目皆已作答完成，確定要交卷嗎？";
+            confirmMsg = "✅ You have answered all the questions.\n\nAre you sure you want to submit your test?";
         }
 
         if (confirm(confirmMsg)) {
@@ -2490,6 +2496,129 @@
         try {window.print();} catch(error) {cleanup();alert('Unable to open printing. Please try again.');}
     }
     window.printTrackReport=printTrackReport;
+    async function collectDatabaseBackup() {
+        const startedAt=new Date().toISOString();
+        const names=['records','examUnits','exams'];
+        const snapshots=await Promise.all(names.map(name=>getDocsFromServer(collection(db,name))));
+        const collections={};
+        const counts={};
+        snapshots.forEach((snapshot,index)=>{
+            const name=names[index];
+            collections[name]=snapshot.docs.map(document=>({id:document.id,data:document.data()}));
+            counts[name]=collections[name].length;
+        });
+        return {format:'LUYA-database-backup',version:1,projectId:firebaseConfig.projectId,
+            startedAt,completedAt:new Date().toISOString(),counts,collections,
+            scope:'All top-level documents in records, examUnits and exams; no date or class filters.',
+            excluded:['Authentication accounts','Firestore rules and indexes','subcollections','website files and Excel question files'],
+            restoreNote:'Application JSON backup. Restore with a compatible import tool; not a Firebase managed-export file.'};
+    }
+    async function backupDatabase() {
+        const button=document.getElementById('btn-backup-database');
+        const status=document.getElementById('backup-status');
+        if(!isAdmin || !isAllowedAdmin(auth.currentUser) || button.disabled) return;
+        button.disabled=true;
+        status.textContent='Reading database from Firebase. Please keep this page open…';
+        try {
+            const backup=await collectDatabaseBackup();
+            const json=JSON.stringify(backup,null,2);
+            const stamp=backup.completedAt.replace(/[:.]/g,'-');
+            const filename=`LUYA_Backup_${firebaseConfig.projectId}_${stamp}.json`;
+            const url=URL.createObjectURL(new Blob([json],{type:'application/json;charset=utf-8'}));
+            const link=document.createElement('a');
+            link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();
+            setTimeout(()=>URL.revokeObjectURL(url),30000);
+            status.textContent=`Backup download started: ${backup.counts.records} records, ${backup.counts.examUnits} unit settings, ${backup.counts.exams} legacy exams. Check your Downloads folder before deleting any data.`;
+        } catch(error) {
+            console.error('Database backup failed:',error);
+            status.textContent=`Backup failed; no backup file was generated. ${error.message}`;
+        } finally {button.disabled=false;}
+    }
+    window.backupDatabase=backupDatabase;
+    const BACKUP_COLLECTIONS=['records','examUnits','exams'];
+    function validateBackupFile(backup) {
+        if(backup?.format!=='LUYA-database-backup' || backup.version!==1 || backup.projectId!==firebaseConfig.projectId)
+            throw new Error('This is not a compatible backup for this Firebase project.');
+        if(!backup.completedAt || !Number.isFinite(Date.parse(backup.completedAt))) throw new Error('Invalid backup date.');
+        if(!backup.collections || Object.keys(backup.collections).some(name=>!BACKUP_COLLECTIONS.includes(name))) throw new Error('Unexpected collections in backup.');
+        for(const name of BACKUP_COLLECTIONS) {
+            const rows=backup.collections[name];
+            if(!Array.isArray(rows) || backup.counts?.[name]!==rows.length) throw new Error(`Missing collection or incorrect count: ${name}`);
+            const ids=new Set();
+            for(const entry of rows) {
+                if(typeof entry.id!=='string' || !entry.id || entry.id.includes('/') || ['.','..'].includes(entry.id) || /^__.*__$/.test(entry.id) || new TextEncoder().encode(entry.id).length>1500 || ids.has(entry.id)) throw new Error(`Invalid or duplicate document ID in ${name}.`);
+                if(!entry.data || typeof entry.data!=='object' || Array.isArray(entry.data)) throw new Error(`Invalid document in ${name}.`);
+                ids.add(entry.id);
+            }
+        }
+        return backup;
+    }
+    function restoreOperations(backup,current) {
+        const actions=[];
+        for(const name of BACKUP_COLLECTIONS) {
+            const targetIds=new Set(backup.collections[name].map(entry=>entry.id));
+            backup.collections[name].forEach(entry=>actions.push({type:'set',name,id:entry.id,data:entry.data}));
+            current.collections[name].filter(entry=>!targetIds.has(entry.id)).forEach(entry=>actions.push({type:'delete',name,id:entry.id}));
+        }
+        return actions;
+    }
+    function downloadSafetyBackup(backup) {
+        const url=URL.createObjectURL(new Blob([JSON.stringify(backup,null,2)],{type:'application/json'}));
+        const link=document.createElement('a');link.href=url;
+        link.download=`LUYA_Before_Restore_${new Date().toISOString().replace(/[:.]/g,'-')}.json`;
+        document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+    }
+    function canonicalJSON(value) {
+        if(Array.isArray(value)) return '['+value.map(canonicalJSON).join(',')+']';
+        if(value && typeof value==='object') return '{'+Object.keys(value).sort().map(key=>JSON.stringify(key)+':'+canonicalJSON(value[key])).join(',')+'}';
+        return JSON.stringify(value);
+    }
+    async function restoreDatabase(input) {
+        const file=input.files[0];input.value='';
+        if(!file || !isAdmin || !isAllowedAdmin(auth.currentUser)) return;
+        const restoreButton=document.getElementById('btn-restore-database');
+        const backupButton=document.getElementById('btn-backup-database');
+        if(restoreButton.disabled || backupButton.disabled) return;
+        restoreButton.disabled=backupButton.disabled=true;
+        const status=document.getElementById('backup-status');
+        let completed=0;
+        try {
+            const backup=validateBackupFile(JSON.parse(await file.text()));
+            status.textContent='Checking current database before restore…';
+            const current=await collectDatabaseBackup();
+            const operations=restoreOperations(backup,current);
+            const deletions=operations.filter(action=>action.type==='delete').length;
+            const counts=BACKUP_COLLECTIONS.map(name=>`${name}: ${current.counts[name]} → ${backup.counts[name]}`).join('\n');
+            downloadSafetyBackup(current);
+            if(!confirm(`Restore database to backup dated ${new Date(backup.completedAt).toLocaleString()}?\n\n${counts}\n\n${deletions} documents not in the backup will be DELETED. Matching documents will be REPLACED.\n\nBefore continuing, stop all students and other administrators from using the site, and confirm the Before_Restore safety backup has downloaded. Large restores run in batches and can partially complete if interrupted.\n\nContinue with full replacement?`)) {status.textContent='Restore cancelled. Database unchanged.';return;}
+            for(let offset=0;offset<operations.length;) {
+                const batch=writeBatch(db);let bytes=0,count=0;
+                while(offset+count<operations.length && count<200) {
+                    const action=operations[offset+count];
+                    const size=new TextEncoder().encode(JSON.stringify(action)).length;
+                    if(count && bytes+size>2000000) break;
+                    const ref=doc(db,action.name,action.id);
+                    if(action.type==='delete') batch.delete(ref);else batch.set(ref,action.data);
+                    bytes+=size;count++;
+                }
+                await batch.commit();offset+=count;completed=offset;
+                status.textContent=`Restoring… ${completed}/${operations.length}`;
+            }
+            const restored=await collectDatabaseBackup();
+            for(const name of BACKUP_COLLECTIONS) {
+                const ordered=entries=>[...entries].sort((a,b)=>a.id.localeCompare(b.id));
+                if(canonicalJSON(ordered(restored.collections[name]))!==canonicalJSON(ordered(backup.collections[name]))) throw new Error(`Verification mismatch in ${name}. Stop other users and restore again.`);
+            }
+            sessionStorage.removeItem(SESSION_KEY);
+            document.getElementById('records-list').textContent='Database restored. Select a report to load the restored data.';
+            await renderUnits();
+            status.textContent=`Restore verified: ${BACKUP_COLLECTIONS.map(name=>`${backup.counts[name]} ${name}`).join(', ')}. All users should Sign out and log in again.`;
+        } catch(error) {
+            console.error('Restore failed:',error);
+            status.textContent=`Restore failed. ${completed} operations confirmed; a failed network response may have committed additional changes. Do not resume testing until restore succeeds. ${error.message}`;
+        } finally {restoreButton.disabled=backupButton.disabled=false;}
+    }
+    window.restoreDatabase=restoreDatabase;
 
     // Load Name.xlsx automatically after the page DOM is ready.
     loadStudentDirectory().then(restorePageSession);
