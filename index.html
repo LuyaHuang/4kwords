@@ -553,7 +553,7 @@
 <div class="container">
     <!-- Header (Logo + Title) -->
     <div class="header-container">
-        <img src="LUYA_LOGO.jpg" alt="LUYA Academy Logo" class="brand-logo" onerror="this.onerror=null; this.src='LUYA_LOGO.png';">
+        <img src="LUYA_LOGO2.png" alt="LUYA Academy Logo" class="brand-logo">
         <div class="header-text">
             <h1>Online Examination System</h1>
             <div class="subtitle">Cloud Testing & Automated Scoring Portal</div>
@@ -842,6 +842,13 @@
         return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
     }
 
+    function studentDisplayName(name, hr='', savedChineseName='') {
+        const student=studentDirectory.find(s=>normalizeLoginValue(s.name)===normalizeLoginValue(name) && (!hr || s.hr===hr));
+        return [student?.c_name || savedChineseName, name].filter(Boolean).join(' ');
+    }
+    function studentDisplayHTML(name,hr='',savedChineseName='') {
+        return studentDisplayName(name,hr,savedChineseName).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
     function getStudentHR(studentName, savedHR = '') {
         if (savedHR) return String(savedHR).trim();
         const matchedStudent = studentDirectory.find(
@@ -871,6 +878,7 @@
 
             const hrColumn = findColumnName(rows[0], 'HR');
             const nameColumn = findColumnName(rows[0], 'Name');
+            const chineseNameColumn = findColumnName(rows[0], 'c_name');
             if (!hrColumn || !nameColumn) {
                 throw new Error('Name.xlsx must contain columns named HR and Name.');
             }
@@ -878,7 +886,8 @@
             studentDirectory = rows
                 .map(row => ({
                     hr: String(row[hrColumn] || '').trim(),
-                    name: String(row[nameColumn] || '').trim()
+                    name: String(row[nameColumn] || '').trim(),
+                    c_name: String(row[chineseNameColumn] || '').trim()
                 }))
                 .filter(student => student.hr && student.name);
 
@@ -968,7 +977,7 @@
             document.getElementById('user-display').classList.remove('hidden');
             document.getElementById('user-role-icon').textContent=isAdmin ? '⚙️' : '👤';
             document.getElementById('user-role-label').textContent=isAdmin ? 'Administrator' : `Student (${currentUserHR})`;
-            document.getElementById('current-user-name').textContent=isAdmin ? auth.currentUser.email : currentUser;
+            document.getElementById('current-user-name').textContent=isAdmin ? auth.currentUser.email : studentDisplayName(currentUser,currentUserHR);
             document.querySelector('.user-badge').classList.toggle('admin-mode',isAdmin);
             const screen=saved.screen==='screen-login' ? 'screen-login' : isAdmin ? 'screen-admin' : ['screen-exam','screen-result'].includes(saved.screen) ? saved.screen : 'screen-student-select';
             for(const id of ['screen-login','screen-admin','screen-student-select','screen-exam','screen-result'])
@@ -1062,7 +1071,7 @@
 
             document.getElementById('user-role-icon').innerText = "👤";
             document.getElementById('user-role-label').innerText = `Student (${currentUserHR})`;
-            document.getElementById('current-user-name').innerText = currentUser;
+            document.getElementById('current-user-name').innerText = studentDisplayName(currentUser,currentUserHR);
             
             if (userBadgeEl) userBadgeEl.classList.remove('admin-mode');
             document.getElementById('user-display').classList.remove('hidden');
@@ -1296,7 +1305,7 @@
 
             recEl.innerHTML = `
                 <div class="record-summary">
-                    <span style="font-size:1rem; font-weight:700;">👤 <span style="color:#16a34a;">${getStudentHR(rec.studentName, rec.studentHR)}</span> <span style="color:#0f172a;">${rec.studentName}</span></span>
+                    <span style="font-size:1rem; font-weight:700;">👤 <span style="color:#16a34a;">${getStudentHR(rec.studentName, rec.studentHR)}</span> <span style="color:#0f172a;">${studentDisplayHTML(rec.studentName,rec.studentHR,rec.c_name)}</span></span>
                     <span>${recordLabel(rec)} · Exam date: ${rec.date}<br>Initial Score: <strong style="color: var(--primary-color); font-size: 1.1rem;">${rec.score} / ${rec.totalPossible}</strong> ${isFullyCorrected ? '<span style="color:var(--success-color); font-size:0.85rem; font-weight:700;">(Correction Complete)</span>' : '<span style="color:var(--danger-color); font-size:0.85rem; font-weight:700;">(Needs Correction)</span>'}</span>
                     <button class="btn btn-inline btn-secondary" onclick="toggleDetails('rec-detail-${idx}')">Details</button>
                 </div>
@@ -1407,7 +1416,7 @@
 
                 tableHtml += `
                     <tr style="border-bottom:1px solid #e2e8f0;">
-                        <td style="padding:12px; text-align:left; font-size:1rem; font-weight:700;">👤 <span style="color:#16a34a;">${row.hr}</span> <span style="color:#0f172a;">${row.name}</span></td>
+                        <td style="padding:12px; text-align:left; font-size:1rem; font-weight:700;">👤 <span style="color:#16a34a;">${row.hr}</span> <span style="color:#0f172a;">${studentDisplayHTML(row.name,row.hr)}</span></td>
                         <td style="padding:12px; font-weight:800; color:var(--danger-color); font-size:1.05rem;">
                             ${row.count} Unit(s)
                         </td>
@@ -1538,7 +1547,7 @@
 
                 tableHtml += `
                     <tr style="border-bottom:1px solid #e2e8f0;">
-                        <td style="padding:12px; text-align:left; font-size:1rem; font-weight:700;">👤 <span style="color:#16a34a;">${row.hr}</span> <span style="color:#0f172a;">${row.name}</span></td>
+                        <td style="padding:12px; text-align:left; font-size:1rem; font-weight:700;">👤 <span style="color:#16a34a;">${row.hr}</span> <span style="color:#0f172a;">${studentDisplayHTML(row.name,row.hr)}</span></td>
                         <td style="padding:12px; font-weight:800; color:var(--purple-color); font-size:1.05rem;">
                             ${row.count} Unit(s)
                         </td>
@@ -1596,7 +1605,7 @@
         studentDirectory
             .filter(student => student.hr === selectedClass)
             .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
-            .forEach(student => studentSelect.add(new Option(student.name, student.name)));
+            .forEach(student => studentSelect.add(new Option(studentDisplayName(student.name,student.hr), student.name)));
 
         studentSelect.disabled = false;
     }
@@ -1654,14 +1663,14 @@
 
     async function fetchAndRenderStudentHistory(searchName, startStr, endStr, selectedClass) {
         const container = document.getElementById('records-list');
-        container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.9rem;">⏳ Searching score history for "${selectedClass} ${searchName}" (${startStr} ~ ${endStr})...</p>`;
+        container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.9rem;">⏳ Searching score history for "${selectedClass} ${studentDisplayHTML(searchName,selectedClass)}" (${startStr} ~ ${endStr})...</p>`;
 
         try {
             const querySnapshot = await getDocs(collection(db, "records"));
             const normalizedSearch = normalizeLoginValue(searchName);
 
             let matchedRecords = [];
-            let displayStudentName = `${selectedClass} ${searchName}`;
+            let displayStudentName = `${selectedClass} ${studentDisplayHTML(searchName,selectedClass)}`;
 
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
@@ -1670,7 +1679,7 @@
                     const recordClass = getStudentHR(data.studentName, data.studentHR);
                     if (normDocName === normalizedSearch && recordClass === selectedClass && data.date >= startStr && data.date <= endStr) {
                         matchedRecords.push(data);
-                        displayStudentName = `${selectedClass} ${data.studentName}`;
+                        displayStudentName = `${selectedClass} ${studentDisplayHTML(data.studentName,selectedClass,data.c_name)}`;
                     }
                 }
             });
@@ -1955,7 +1964,7 @@
                         <td style="padding:12px; font-weight:800; font-size:1.05rem; color:${row.rank <= 3 ? '#d97706' : '#0f172a'};">
                             ${badge}
                         </td>
-                        <td style="padding:12px; text-align:left; font-size:1rem; font-weight:700;"><span style="color:#16a34a;">${row.hr}</span> <span style="color:#0f172a;">${row.name}</span></td>
+                        <td style="padding:12px; text-align:left; font-size:1rem; font-weight:700;"><span style="color:#16a34a;">${row.hr}</span> <span style="color:#0f172a;">${studentDisplayHTML(row.name,row.hr)}</span></td>
                         <td style="padding:12px;">${row.count} Unit(s)</td>
                         <td style="padding:12px; font-weight:800; font-size:1.1rem; color:var(--primary-color);">${row.totalScore} Pts</td>
                     </tr>
@@ -1979,7 +1988,7 @@
         document.getElementById('screen-result').classList.remove('hidden');
 
         document.getElementById('result-status-title').innerText = "Exam Record Overview";
-        document.getElementById('result-student-name').innerText = `Student: ${studentRecord.studentName} (${studentRecord.date}) · ${recordLabel(studentRecord)}`;
+        document.getElementById('result-student-name').innerText = `Student: ${studentDisplayName(studentRecord.studentName,studentRecord.studentHR,studentRecord.c_name)} (${studentRecord.date}) · ${recordLabel(studentRecord)}`;
         document.getElementById('final-score').innerText = `Initial Score: ${studentRecord.score} / ${studentRecord.totalPossible} Points`;
 
         let resultListHtml = '';
@@ -2011,7 +2020,7 @@
             if(!state.exists() || !isDue(state.data()) || !classCanAccess(state.data(),currentUserHR)) throw new Error('This unit is not available for your class.');
             const exam=await loadUnitExam(book,unit);
             activeUnit={book,unit,unitId:unitKey(book,unit)};
-            activeRecord=isCorrection ? structuredClone(correctionRecord) : {recordId:doc(collection(db,'records')).id,studentName:currentUser,studentHR:currentUserHR,...activeUnit,date:getFormattedDate(),score:0,totalPossible:0,details:[]};
+            activeRecord=isCorrection ? structuredClone(correctionRecord) : {recordId:doc(collection(db,'records')).id,studentName:currentUser,studentHR:currentUserHR,c_name:studentDirectory.find(s=>s.name===currentUser && s.hr===currentUserHR)?.c_name || '',...activeUnit,date:getFormattedDate(),score:0,totalPossible:0,details:[]};
             if(isCorrection && !activeRecord) throw new Error('Correction record unavailable.');
             currentExamData=exam; sectionDefs=exam.sectionDefs || {}; isCorrectionMode=isCorrection;
             questions=isCorrection ? exam.questions.filter(q=>activeRecord.details.some(d=>d.id===q.id && !d.isCorrect)) : exam.questions;
@@ -2381,7 +2390,7 @@
         const remainingWrong = (studentRecord.details || []).filter(d => !d.isCorrect).length;
 
         document.getElementById('result-status-title').innerText = isCorrectionMode ? "Correction Result" : "Test Completed!";
-        document.getElementById('result-student-name').innerText = `Student: ${currentUser} (${targetDate}) · ${recordLabel(studentRecord)}`;
+        document.getElementById('result-student-name').innerText = `Student: ${studentDisplayName(currentUser,currentUserHR)} (${targetDate}) · ${recordLabel(studentRecord)}`;
         
         document.getElementById('final-score').innerHTML = `
             Initial Exam Score: ${studentRecord.score} / ${studentRecord.totalPossible}<br>
@@ -2433,13 +2442,13 @@
         const units=[...new Set([...(data.rankingUnits || []),...data.leaderboard.flatMap(row=>Object.keys(row.unitScores || {}))])].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
         const books=new Set(units.map(unit=>unit.match(/^Book(\d+) /)?.[1]).filter(Boolean));
         const labels=units.map(unit=>books.size===1 ? unit.replace(/^Book\d+ \/ Unit/,'Unit ') : unit);
-        sheet.addRow(['Homeroom','English Name',...labels,'Total','Rank']);
+        sheet.addRow(['Homeroom','Student Name',...labels,'Total','Rank']);
         sheet.columns=[{width:14},{width:23},...units.map(()=>({width:books.size>1 ? 21:12})),{width:12},{width:10}];
         const totalColumn=units.length+3, rankColumn=totalColumn+1;
         const totalLetter=sheet.getColumn(totalColumn).letter;
         data.leaderboard.forEach((entry,index)=>{
             const values=units.map(unit=>Object.prototype.hasOwnProperty.call(entry.unitScores || {},unit) ? entry.unitScores[unit] : '--');
-            const row=sheet.addRow([entry.hr,entry.name,...values,entry.totalScore,entry.rank]);
+            const row=sheet.addRow([entry.hr,studentDisplayName(entry.name,entry.hr),...values,entry.totalScore,entry.rank]);
             const rowNumber=index+2;
             row.getCell(totalColumn).value={formula:units.length ? `SUM(C${rowNumber}:${sheet.getColumn(totalColumn-1).letter}${rowNumber})` : '0',result:entry.totalScore};
             row.getCell(rankColumn).value={formula:`RANK(${totalLetter}${rowNumber},$${totalLetter}$2:$${totalLetter}$${data.leaderboard.length+1},0)`,result:entry.rank};
@@ -2485,7 +2494,7 @@
             if(historyOnly) return `<tr><td>${escape(rec.date)}</td><td>${escape(recordLabel(rec))}</td><td class="summary-score">${escape(rec.score)} / ${escape(rec.totalPossible)}</td></tr>`;
             const details=recordDetails(rec);
             const status=details.length ? (details.some(d=>!d.isCorrect) ? 'Needs Correction' : 'Complete') : '—';
-            return `<tr><td>${escape(getStudentHR(rec.studentName,rec.studentHR))}</td><td class="summary-student">${escape(rec.studentName)}</td><td>${escape(rec.date)}</td><td>${escape(recordLabel(rec))}</td><td class="summary-score">${escape(rec.score)} / ${escape(rec.totalPossible)}</td><td>${status}</td></tr>`;
+            return `<tr><td>${escape(getStudentHR(rec.studentName,rec.studentHR))}</td><td class="summary-student">${escape(studentDisplayName(rec.studentName,rec.studentHR,rec.c_name))}</td><td>${escape(rec.date)}</td><td>${escape(recordLabel(rec))}</td><td class="summary-score">${escape(rec.score)} / ${escape(rec.totalPossible)}</td><td>${status}</td></tr>`;
         }).join('');
         const columns=historyOnly ? '<th>Exam Date</th><th>Book / Unit</th><th>Initial Score</th>' : '<th>Class</th><th>Student</th><th>Exam Date</th><th>Book / Unit</th><th>Initial Score</th><th>Correction</th>';
         return `<table class="print-record-summary"><thead><tr>${columns}</tr></thead><tbody>${rows}</tbody></table>`;
