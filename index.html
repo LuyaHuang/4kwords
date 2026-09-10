@@ -779,7 +779,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
-    const ADMIN_EMAILS = ['huang@luya.academy', 'owenchin@luya.academy'];
+    const ADMIN_EMAILS = ['huang@luya.academy', 'owenchin@luya.academy', 'jacklee@luya.academy', 'keyeslee@luya.academy'];
     const isAllowedAdmin = user => user?.emailVerified === true && ADMIN_EMAILS.includes(user.email?.toLowerCase());
     const authReady = setPersistence(auth, browserSessionPersistence);
     authReady.catch(error => console.error('Authentication initialization:', error));
