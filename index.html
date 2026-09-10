@@ -2532,7 +2532,7 @@
         const button=document.getElementById('btn-backup-database');
         const status=document.getElementById('backup-status');
         if(!isAdmin || !isAllowedAdmin(auth.currentUser) || button.disabled) return;
-        if(!confirm('Back up the database? Pause all testing until the backup is complete. Keep the downloaded file in a safe place; it contains student records.\n\nPress OK to start, or Cancel to do nothing.')) return;
+        if(!confirm('⚠️ Warning: Back up the database? Pause all testing until the backup is complete. Keep the downloaded file in a safe place; it contains student records.\n\nPress OK to start, or Cancel to do nothing.')) return;
         button.disabled=true;
         status.textContent='Reading database from Firebase. Please keep this page open…';
         try {
@@ -2605,7 +2605,7 @@
             const operations=restoreOperations(backup,current);
             const deletions=operations.filter(action=>action.type==='delete').length;
             const counts=BACKUP_COLLECTIONS.map(name=>`${name}: ${current.counts[name]} → ${backup.counts[name]}`).join('\n');
-            if(!confirm(`Restore database to backup dated ${new Date(backup.completedAt).toLocaleString()}?\n\n${counts}\n\n${deletions} documents not in the backup will be DELETED. Matching documents will be REPLACED.\n\nBefore continuing, stop all students and other administrators from using the site, A safety backup will be downloaded before changes begin. Large restores run in batches and can partially complete if interrupted.\n\nContinue with full replacement?`)) {status.textContent='Restore cancelled. Database unchanged.';return;}
+            if(!confirm(`⚠️ Warning: Restore database to backup dated ${new Date(backup.completedAt).toLocaleString()}?\n\n${counts}\n\n${deletions} documents not in the backup will be DELETED. Matching documents will be REPLACED.\n\nBefore continuing, stop all students and other administrators from using the site. A safety backup will be downloaded before changes begin. Large restores run in batches and can partially complete if interrupted.\n\nContinue with full replacement?`)) {status.textContent='Restore cancelled. Database unchanged.';return;}
             downloadSafetyBackup(current);
             for(let offset=0;offset<operations.length;) {
                 const batch=writeBatch(db);let bytes=0,count=0;
@@ -2637,7 +2637,7 @@
     window.restoreDatabase=restoreDatabase;
     window.requestDatabaseRestore=()=>{
         if(!isAdmin || !isAllowedAdmin(auth.currentUser) || document.getElementById('btn-restore-database').disabled || document.getElementById('btn-backup-database').disabled) return;
-        if(confirm('Warning: Restoring replaces current exam records and unit settings with the selected backup and deletes data not in that backup. Pause all testing and save a current backup before continuing.\n\nPress OK to select a backup file, or Cancel to do nothing.')) document.getElementById('restore-file').click();
+        if(confirm('⚠️ Warning: Restoring replaces current exam records and unit settings with the selected backup and deletes data not in that backup. Pause all testing and save a current backup before continuing.\n\nPress OK to select a backup file, or Cancel to do nothing.')) document.getElementById('restore-file').click();
     };
 
     // Load Name.xlsx automatically after the page DOM is ready.
