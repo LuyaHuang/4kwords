@@ -688,6 +688,16 @@
     </div>
 </div>
 
+<div id="modal-database-warning" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="database-warning-title" aria-describedby="database-warning-message">
+    <div class="modal-card" style="max-height:90vh;overflow-y:auto;">
+        <h3 id="database-warning-title" class="modal-title">⚠️ Warning</h3>
+        <p id="database-warning-message" style="white-space:pre-line;line-height:1.6;"></p>
+        <div class="modal-btn-row">
+            <button id="database-warning-cancel" class="btn btn-secondary" type="button">Cancel</button>
+            <button id="database-warning-ok" class="btn" type="button">OK</button>
+        </div>
+    </div>
+</div>
 <div id="modal-unit-classes" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="unit-classes-title">
     <div class="modal-card">
         <h3 id="unit-classes-title" class="modal-title"></h3>
@@ -2528,11 +2538,43 @@
             excluded:['Authentication accounts','Firestore rules and indexes','subcollections','website files and Excel question files'],
             restoreNote:'Application JSON backup. Restore with a compatible import tool; not a Firebase managed-export file.'};
     }
+    let databaseWarningPending=false;
+    function confirmDatabaseWarning(message) {
+        if(databaseWarningPending) return Promise.resolve(false);
+        databaseWarningPending=true;
+        const modal=document.getElementById('modal-database-warning');
+        const cancel=document.getElementById('database-warning-cancel');
+        const ok=document.getElementById('database-warning-ok');
+        const previousFocus=document.activeElement;
+        document.getElementById('database-warning-message').textContent=message.replace(/^⚠️ Warning: /,'');
+        modal.classList.remove('hidden');
+        return new Promise(resolve=>{
+            function finish(accepted) {
+                modal.classList.add('hidden');
+                modal.removeEventListener('keydown',onKey);
+                cancel.onclick=ok.onclick=null;
+                databaseWarningPending=false;
+                previousFocus?.focus();
+                resolve(accepted);
+            }
+            function onKey(event) {
+                if(event.key==='Escape') {event.preventDefault();finish(false);}
+                if(event.key==='Tab') {
+                    event.preventDefault();
+                    (document.activeElement===cancel ? ok : cancel).focus();
+                }
+            }
+            cancel.onclick=()=>finish(false);
+            ok.onclick=()=>finish(true);
+            modal.addEventListener('keydown',onKey);
+            cancel.focus();
+        });
+    }
     async function backupDatabase() {
         const button=document.getElementById('btn-backup-database');
         const status=document.getElementById('backup-status');
         if(!isAdmin || !isAllowedAdmin(auth.currentUser) || button.disabled) return;
-        if(!confirm('⚠️ Warning: Back up the database? Pause all testing until the backup is complete. Keep the downloaded file in a safe place; it contains student records.\n\nPress OK to start, or Cancel to do nothing.')) return;
+        if(!await confirmDatabaseWarning('⚠️ Warning: Back up the database? Pause all testing until the backup is complete. Keep the downloaded file in a safe place; it contains student records.\n\nPress OK to start, or Cancel to do nothing.')) return;
         button.disabled=true;
         status.textContent='Reading database from Firebase. Please keep this page open…';
         try {
@@ -2605,7 +2647,7 @@
             const operations=restoreOperations(backup,current);
             const deletions=operations.filter(action=>action.type==='delete').length;
             const counts=BACKUP_COLLECTIONS.map(name=>`${name}: ${current.counts[name]} → ${backup.counts[name]}`).join('\n');
-            if(!confirm(`⚠️ Warning: Restore database to backup dated ${new Date(backup.completedAt).toLocaleString()}?\n\n${counts}\n\n${deletions} documents not in the backup will be DELETED. Matching documents will be REPLACED.\n\nBefore continuing, stop all students and other administrators from using the site. A safety backup will be downloaded before changes begin. Large restores run in batches and can partially complete if interrupted.\n\nContinue with full replacement?`)) {status.textContent='Restore cancelled. Database unchanged.';return;}
+            if(!await confirmDatabaseWarning(`⚠️ Warning: Restore database to backup dated ${new Date(backup.completedAt).toLocaleString()}?\n\n${counts}\n\n${deletions} documents not in the backup will be DELETED. Matching documents will be REPLACED.\n\nBefore continuing, stop all students and other administrators from using the site. A safety backup will be downloaded before changes begin. Large restores run in batches and can partially complete if interrupted.\n\nContinue with full replacement?`)) {status.textContent='Restore cancelled. Database unchanged.';return;}
             downloadSafetyBackup(current);
             for(let offset=0;offset<operations.length;) {
                 const batch=writeBatch(db);let bytes=0,count=0;
@@ -2635,9 +2677,9 @@
         } finally {restoreButton.disabled=backupButton.disabled=false;}
     }
     window.restoreDatabase=restoreDatabase;
-    window.requestDatabaseRestore=()=>{
+    window.requestDatabaseRestore=async()=>{
         if(!isAdmin || !isAllowedAdmin(auth.currentUser) || document.getElementById('btn-restore-database').disabled || document.getElementById('btn-backup-database').disabled) return;
-        if(confirm('⚠️ Warning: Restoring replaces current exam records and unit settings with the selected backup and deletes data not in that backup. Pause all testing and save a current backup before continuing.\n\nPress OK to select a backup file, or Cancel to do nothing.')) document.getElementById('restore-file').click();
+        if(await confirmDatabaseWarning('⚠️ Warning: Restoring replaces current exam records and unit settings with the selected backup and deletes data not in that backup. Pause all testing and save a current backup before continuing.\n\nPress OK to select a backup file, or Cancel to do nothing.')) document.getElementById('restore-file').click();
     };
 
     // Load Name.xlsx automatically after the page DOM is ready.
