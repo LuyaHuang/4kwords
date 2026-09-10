@@ -1238,7 +1238,7 @@
             }
         }
         try {
-            const state={book,unit,isOpen:opening,allowedClasses:opening ? allowedClasses : (unitStates[key]?.allowedClasses || []),openedDate:opening && !wasOpen ? getFormattedDate() : (unitStates[key]?.openedDate || ''),updatedAt:new Date().toISOString()};
+            const state={book,unit,isOpen:opening,allowedClasses:opening ? allowedClasses : (unitStates[key]?.allowedClasses || []),openedDate:unitStates[key]?.openedDate || (opening ? getFormattedDate() : ''),updatedAt:new Date().toISOString()};
             await setDoc(doc(db,'examUnits',key),state);
             unitStates[key]=state; drawUnits();
             return true;
