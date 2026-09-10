@@ -1895,8 +1895,19 @@
                     && selectedClasses.some(hr=>classCanAccess(unit,hr))) rankingUnits.add(unitLabel(unit.book,unit.unit));
             });
 
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
+            const firstAttempts=new Map();
+            querySnapshot.forEach(recordDoc=>{
+                const data=recordDoc.data();
+                if(!data.studentName || !data.date) return;
+                const hr=getStudentHR(data.studentName,data.studentHR);
+                if(!selectedClasses.includes(hr)) return;
+                const unit=data.book && data.unit ? unitKey(data.book,data.unit) : data.unitId || `Date ${data.date}`;
+                const key=JSON.stringify([hr,normalizeLoginValue(data.studentName),unit]);
+                const order=`${data.date}|${data.submittedAt || ''}|${recordDoc.id || ''}`;
+                const previous=firstAttempts.get(key);
+                if(!previous || order<previous.order) firstAttempts.set(key,{data,order});
+            });
+            firstAttempts.forEach(({data}) => {
                 if (data.date >= startStr && data.date <= endStr && data.studentName) {
                     const name = data.studentName;
                     const hr = getStudentHR(name, data.studentHR);
@@ -1948,7 +1959,7 @@
                         <tr style="background:#f1f5f9; border-bottom:2px solid #cbd5e1; color:var(--text-muted);">
                             <th style="padding:10px;">Rank</th>
                             <th style="padding:10px; text-align:left;">Class + Student Name</th>
-                            <th style="padding:10px;">Test Days</th>
+                            <th style="padding:10px;">Units Tested</th>
                             <th style="padding:10px;">Total Score</th>
                         </tr>
                     </thead>
