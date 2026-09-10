@@ -2443,15 +2443,16 @@
         const units=[...new Set([...(data.rankingUnits || []),...data.leaderboard.flatMap(row=>Object.keys(row.unitScores || {}))])].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
         const books=new Set(units.map(unit=>unit.match(/^Book(\d+) /)?.[1]).filter(Boolean));
         const labels=units.map(unit=>books.size===1 ? unit.replace(/^Book\d+ \/ Unit/,'Unit ') : unit);
-        sheet.addRow(['Homeroom','Student Name',...labels,'Total','Rank']);
-        sheet.columns=[{width:14},{width:23},...units.map(()=>({width:books.size>1 ? 21:12})),{width:12},{width:10}];
-        const totalColumn=units.length+3, rankColumn=totalColumn+1;
+        sheet.addRow(['Homeroom','姓名','Student Name',...labels,'Total','Rank']);
+        sheet.columns=[{width:14},{width:14},{width:23},...units.map(()=>({width:books.size>1 ? 21:12})),{width:12},{width:10}];
+        const totalColumn=units.length+4, rankColumn=totalColumn+1;
         const totalLetter=sheet.getColumn(totalColumn).letter;
         data.leaderboard.forEach((entry,index)=>{
             const values=units.map(unit=>Object.prototype.hasOwnProperty.call(entry.unitScores || {},unit) ? entry.unitScores[unit] : '--');
-            const row=sheet.addRow([entry.hr,studentDisplayName(entry.name,entry.hr),...values,entry.totalScore,entry.rank]);
+            const chineseName=studentDirectory.find(student=>normalizeLoginValue(student.name)===normalizeLoginValue(entry.name) && student.hr===entry.hr)?.c_name || entry.c_name || '';
+            const row=sheet.addRow([entry.hr,chineseName,entry.name,...values,entry.totalScore,entry.rank]);
             const rowNumber=index+2;
-            row.getCell(totalColumn).value={formula:units.length ? `SUM(C${rowNumber}:${sheet.getColumn(totalColumn-1).letter}${rowNumber})` : '0',result:entry.totalScore};
+            row.getCell(totalColumn).value={formula:units.length ? `SUM(D${rowNumber}:${sheet.getColumn(totalColumn-1).letter}${rowNumber})` : '0',result:entry.totalScore};
             row.getCell(rankColumn).value={formula:`RANK(${totalLetter}${rowNumber},$${totalLetter}$2:$${totalLetter}$${data.leaderboard.length+1},0)`,result:entry.rank};
         });
         sheet.eachRow(row=>{
@@ -2462,7 +2463,7 @@
                 cell.alignment={horizontal:'center',vertical:'middle',wrapText:row.number===1};
                 const edge={style:'thin',color:{argb:'FF000000'}};
                 cell.border={top:edge,bottom:edge,left:edge,right:edge};
-                if(row.number>1 && col>2) cell.numFmt='0.##';
+                if(row.number>1 && col>3) cell.numFmt='0.##';
             }
         });
         sheet.autoFilter={from:{row:1,column:1},to:{row:sheet.rowCount,column:rankColumn}};
