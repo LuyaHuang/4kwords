@@ -635,6 +635,7 @@
     <div id="screen-exam" class="hidden">
         <div id="def-banner" class="section-def-banner"></div>
         <div id="q-points" class="points-tag">(Points: 5)</div>
+        <div id="correction-prompt" class="hidden" style="color:#dc2626;font-weight:700;margin-bottom:8px;">Try again</div>
         <div class="question-stem">
             <span id="q-number">1.</span>
             <span id="q-stem"></span>
@@ -2171,7 +2172,8 @@
             lastSectionType = q.type;
         }
 
-        document.getElementById('q-number').innerText = isCorrectionMode ? `[Correction] Q${q.id}.` : `Q${q.id}.`;
+        document.getElementById('correction-prompt').classList.toggle('hidden', !isCorrectionMode);
+        document.getElementById('q-number').innerText = `Q${q.id}.`;
         document.getElementById('q-stem').innerText = q.stem;
         document.getElementById('q-points').innerText = `(Points: ${q.points})`;
 
