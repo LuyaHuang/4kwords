@@ -2470,7 +2470,7 @@ async function buildWeeklyWord(ZipLibrary,data) {
     function fill(node,value) {
         const nodes=texts(node);
         if(nodes.length) {nodes[0].textContent=String(value);nodes[0].setAttribute('xml:space','preserve');nodes.slice(1).forEach(n=>n.textContent='');}
-        else {const p=children(node,'p')[0] || node.appendChild(xml.createElementNS(ns,'w:p'));const r=p.appendChild(xml.createElementNS(ns,'w:r'));r.appendChild(xml.createElementNS(ns,'w:t')).textContent=String(value);}
+        else {const p=node.namespaceURI===ns && node.localName==='p' ? node : children(node,'p')[0] || node.appendChild(xml.createElementNS(ns,'w:p'));const r=p.appendChild(xml.createElementNS(ns,'w:r'));r.appendChild(xml.createElementNS(ns,'w:t')).textContent=String(value);}
     }
     const body=xml.getElementsByTagNameNS(ns,'body')[0];
     const table=children(body,'tbl')[0];
@@ -2509,6 +2509,7 @@ async function buildWeeklyWord(ZipLibrary,data) {
         const spacer=xml.createElementNS(ns,'w:p');body.insertBefore(spacer,table);
     }
     table.remove();
+    if(Array.from(xml.getElementsByTagNameNS(ns,'p')).some(p=>p.getElementsByTagNameNS(ns,'p').length)) throw Error('Invalid Word paragraph structure. Export stopped.');
     zip.file('word/document.xml',new XMLSerializer().serializeToString(xml));
     return zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',compression:'DEFLATE'});
 }
