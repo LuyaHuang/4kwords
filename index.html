@@ -1239,7 +1239,18 @@
             }
         }
         try {
-            const state={book,unit,isOpen:opening,allowedClasses:opening ? allowedClasses : (unitStates[key]?.allowedClasses || []),openedDate:unitStates[key]?.openedDate || (opening ? getFormattedDate() : ''),updatedAt:new Date().toISOString()};
+            let openedDate=unitStates[key]?.openedDate || '';
+            if(opening && !wasOpen) {
+                // Check all classes against server records, including older unitId-only records.
+                const snapshot=await getDocsFromServer(collection(db,'records'));
+                const hasAttempts=snapshot.docs.some(recordDoc=>{
+                    const record=recordDoc.data();
+                    return record.unitId===key || (Number(record.book)===Number(book) && Number(record.unit)===Number(unit));
+                });
+                if(!hasAttempts) openedDate=getFormattedDate();
+                else if(!openedDate) throw new Error('This unit has exam records but no original opening date. Restore its opening date before reopening.');
+            }
+            const state={book,unit,isOpen:opening,allowedClasses:opening ? allowedClasses : (unitStates[key]?.allowedClasses || []),openedDate,updatedAt:new Date().toISOString()};
             await setDoc(doc(db,'examUnits',key),state);
             unitStates[key]=state; drawUnits();
             return true;
