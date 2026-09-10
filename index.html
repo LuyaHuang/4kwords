@@ -878,7 +878,8 @@
 
             const hrColumn = findColumnName(rows[0], 'HR');
             const nameColumn = findColumnName(rows[0], 'Name');
-            const chineseNameColumn = findColumnName(rows[0], 'c_name');
+            const chineseNameColumn = Object.keys(rows[0]).find(key =>
+                ['cname','chinesename','中文姓名'].includes(String(key).trim().toLowerCase().replace(/[\s_-]+/g,'')));
             if (!hrColumn || !nameColumn) {
                 throw new Error('Name.xlsx must contain columns named HR and Name.');
             }
